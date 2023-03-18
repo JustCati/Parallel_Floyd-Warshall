@@ -33,6 +33,22 @@ int main(int argc, char **argv){
     ErdosRenyi(*g, p);
     g->printGraph();
 
+    int *d = FloydWarshall(*g);
+    int num = g->getNumVertices();
+
+    //* Print ADJ matrix (results of Floyd-Warshall)
+    for (int i = 0; i < num; i++){
+        for(int j = 0; j < num; j++){
+            if (i == j)
+                std::cout << "0\t";
+            else
+                std::cout << d[i * num + j] << "\t";
+        }
+        std::cout << std::endl;
+    }
+
     delete g;
+    delete[] d;
+
     exit(0);
 }

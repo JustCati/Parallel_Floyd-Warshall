@@ -98,4 +98,20 @@ void ErdosRenyi(Graph& g, double p) {
         }
 }
 
+int* FloydWarshall(const Graph& g){
+    int numVertices = g.getNumVertices();
+    int *W = new int[g.getNumVertices() * g.getNumVertices()];
+    std::memcpy(W, g.getAdjMatrix(), numVertices * numVertices * sizeof(int));
 
+    for (int k = 0; k < numVertices; k++)
+        for (int i = 0; i < numVertices; i++)
+            for (int j = 0; j < numVertices; j++){
+                if (i == j)
+                    continue;
+                int min = W[i * numVertices + j];
+                if(W[i * numVertices + k] != INT32_MAX && W[k * numVertices + j] != INT32_MAX)
+                    min = std::min(min, W[i * numVertices + k] + W[k * numVertices + j]);
+                W[i * numVertices + j] = min;
+            }
+    return W;
+}

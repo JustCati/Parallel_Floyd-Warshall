@@ -31,3 +31,4 @@ public:
 
 
 void ErdosRenyi(Graph& g, double p);
+int* FloydWarshall(const Graph& g);
