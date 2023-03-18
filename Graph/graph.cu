@@ -85,16 +85,15 @@ void Graph::printGraphToFile(std::string filename) const {
 }
 
 
-void ErdosRenyi(Graph& g, double p) {
-    double percentage = fmod(p, 1) * 100;
+void ErdosRenyi(Graph& g, int p) {
+    int percentage = p % 100;
     for (int i = 0; i < g.numVertices; i++)
         for (int j = 0; j < g.numVertices; j++){
             if (i == j)
                 continue;
             int random = rand() % 100;
             if (random >= percentage)
-                if(g.getWeight(i, j) == INT32_MAX)
-                    g.addEdge(i, j, rand() % 10);
+                g.addEdge(i, j, rand() % 10);
         }
 }
 

@@ -26,7 +26,7 @@ public:
 
     void printGraphToFile(std::string filename) const;
 
-    friend void ErdosRenyi(Graph& g, double p);
+    friend void ErdosRenyi(Graph& g, int p);
 };
 
 
