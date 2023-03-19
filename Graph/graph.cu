@@ -93,11 +93,11 @@ void ErdosRenyi(Graph& g, int p) {
                 continue;
             int random = rand() % 100;
             if (random >= percentage)
-                g.addEdge(i, j, rand() % 10);
+                g.addEdge(i, j, (rand() % 15) + 1);
         }
 }
 
-int* FloydWarshall(const Graph& g){
+int* FloydWarshallCPU(const Graph& g){
     int numVertices = g.getNumVertices();
     int *W = new int[g.getNumVertices() * g.getNumVertices()];
     std::memcpy(W, g.getAdjMatrix(), numVertices * numVertices * sizeof(int));

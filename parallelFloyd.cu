@@ -19,9 +19,7 @@ int main(int argc, char **argv){
         g = new Graph(argv[2]);
     }
     else if (std::string(argv[1]) == "-g"){
-        if(argc != 4)
-            err("Utilizzo comando: ./parallelFloyd -n num_vertices percentage (0 < percentage < 100)");
-        if (atoi(argv[3]) <= 0 || atoi(argv[3]) >= 100)
+        if(argc != 4 || atoi(argv[3]) <= 0 || atoi(argv[3]) >= 100)
             err("Utilizzo comando: ./parallelFloyd -n num_vertices percentage (0 < percentage < 100)");
     
         g = new Graph(atoi(argv[2]));
@@ -33,26 +31,10 @@ int main(int argc, char **argv){
         err("Utilizzo comando: ./parallelFloyd ([-f] file_name | [-g] num_vertices percentage (0 < percentage < 100))");
 
 
-
-    //! ------------ TEST FLOYD WARSHALL --------------
-    g->printGraph();
-
-    int *d = FloydWarshall(*g);
-    int num = g->getNumVertices();
-
-    //* Print ADJ matrix (results of Floyd-Warshall)
-    for (int i = 0; i < num; i++){
-        for(int j = 0; j < num; j++){
-            if (i == j)
-                std::cout << "0\t";
-            else
-                std::cout << d[i * num + j] << "\t";
-        }
-        std::cout << std::endl;
-    }
+    //! ------------ TEST FLOYD WARSHALL CPU--------------
+    int *d = FloydWarshallCPU(*g);
     delete[] d;
-    //! -----------------------------------------------
-
+    //! --------------------------------------------------
 
     delete g;
     exit(0);

@@ -30,5 +30,5 @@ public:
 };
 
 
-void ErdosRenyi(Graph& g, double p);
-int* FloydWarshall(const Graph& g);
+void ErdosRenyi(Graph& g, int p);
+int* FloydWarshallCPU(const Graph& g);
