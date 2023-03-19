@@ -3,14 +3,27 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+#include <limits.h>
 
 
-GraphCPU::GraphCPU(int numVertices) {
+GraphCPU::GraphCPU(int numVertices, int p) {
     this->numVertices = numVertices;
-
     this->adjMatrix = new int[numVertices*numVertices];
-    for(int i = 0; i < numVertices*numVertices; i++)
-        this->adjMatrix[i] = INT32_MAX;
+    this->memsize = numVertices * numVertices * sizeof(int);
+
+    // Initialize the matrix using the Erdos-Renyi algorithm
+    for(int i = 0; i < this->numVertices * this->numVertices; i++){
+        if (i % (this->numVertices + 1) == 0)
+            this->adjMatrix[i] = 0;
+        else{
+            int random = rand() % 100;
+            if (random >= p)
+                this->adjMatrix[i] = (rand() % 15) + 1;
+            else
+                // (INT_MAX / 2) to avoid overflow when summing two INF
+                this->adjMatrix[i] = INT_MAX >> 1;
+        }
+    }
 }
 
 GraphCPU::~GraphCPU() {
@@ -25,36 +38,26 @@ int GraphCPU::getNumVertices() const {
     return this->numVertices;
 }
 
-inline const int* GraphCPU::getAdjMatrix() const {
-    return this->adjMatrix;
+size_t GraphCPU::getMatrixSize() const {
+    return this->memsize;
 }
 
-void ErdosRenyiCPU(GraphCPU& g, int p) {
-    int percentage = p % 100;
-    for (int i = 0; i < g.numVertices; i++)
-        for (int j = 0; j < g.numVertices; j++){
-            if (i == j)
-                continue;
-            int random = rand() % 100;
-            if (random >= percentage)
-                g.addEdge(i, j, (rand() % 15) + 1);
-        }
+inline const int* GraphCPU::getAdjMatrix() const {
+    return this->adjMatrix;
 }
 
 int* FloydWarshallCPU(const GraphCPU& g){
     int numVertices = g.getNumVertices();
     int *W = new int[g.getNumVertices() * g.getNumVertices()];
-    std::memcpy(W, g.getAdjMatrix(), numVertices * numVertices * sizeof(int));
+
+    std::memcpy(W, g.getAdjMatrix(), g.getMatrixSize());
 
     for (int k = 0; k < numVertices; k++)
         for (int i = 0; i < numVertices; i++)
             for (int j = 0; j < numVertices; j++){
                 if (i == j)
                     continue;
-                int min = W[i * numVertices + j];
-                if(W[i * numVertices + k] != INT32_MAX && W[k * numVertices + j] != INT32_MAX)
-                    min = std::min(min, W[i * numVertices + k] + W[k * numVertices + j]);
-                W[i * numVertices + j] = min;
+                W[i * numVertices + j] = std::min(W[i * numVertices + j], W[i * numVertices + k] + W[k * numVertices + j]);
             }
     return W;
 }

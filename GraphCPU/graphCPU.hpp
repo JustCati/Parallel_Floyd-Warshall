@@ -5,10 +5,13 @@
 class GraphCPU {
 private:
     int numVertices;
-    int* adjMatrix;
+    
+    size_t memsize;
 
 public:
-    GraphCPU(int numVertices);
+
+int* adjMatrix;
+    GraphCPU(int numVertices, int p);
 
     ~GraphCPU();
 
@@ -16,11 +19,9 @@ public:
      
     int getNumVertices() const;
 
-    const int* getAdjMatrix() const;
+    size_t getMatrixSize() const;
 
-    friend void ErdosRenyiCPU(GraphCPU& g, int p);
+    const int* getAdjMatrix() const;
 };
 
-
-void ErdosRenyiCPU(GraphCPU& g, int p);
 int* FloydWarshallCPU(const GraphCPU& g);
