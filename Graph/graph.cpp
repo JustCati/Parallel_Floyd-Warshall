@@ -1,4 +1,4 @@
-#include "graphCPU.hpp"
+#include "graph.hpp"
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -6,7 +6,7 @@
 #include <limits.h>
 
 
-GraphCPU::GraphCPU(int numVertices, int p) {
+Graph::Graph(int numVertices, int p) {
     this->numVertices = numVertices;
     this->adjMatrix = new int[numVertices*numVertices];
     this->memsize = numVertices * numVertices * sizeof(int);
@@ -26,27 +26,23 @@ GraphCPU::GraphCPU(int numVertices, int p) {
     }
 }
 
-GraphCPU::~GraphCPU() {
+Graph::~Graph() {
     delete[] this->adjMatrix;
 }
-
-void GraphCPU::addEdge(int src, int dest, int weight) {
-    this->adjMatrix[src * this->numVertices + dest] = weight;
-}
  
-int GraphCPU::getNumVertices() const {
+int Graph::getNumVertices() const {
     return this->numVertices;
 }
 
-size_t GraphCPU::getMatrixSize() const {
+size_t Graph::getMatrixSize() const {
     return this->memsize;
 }
 
-inline const int* GraphCPU::getAdjMatrix() const {
+inline const int* Graph::getAdjMatrix() const {
     return this->adjMatrix;
 }
 
-int* FloydWarshallCPU(const GraphCPU& g){
+int* FloydWarshallCPU(const Graph& g){
     int numVertices = g.getNumVertices();
     int *W = new int[g.getNumVertices() * g.getNumVertices()];
 

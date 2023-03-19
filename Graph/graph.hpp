@@ -2,20 +2,17 @@
 #include <vector>
 #include <string>
 
-class GraphCPU {
+class Graph {
 private:
     int numVertices;
-    
+    int* adjMatrix;
     size_t memsize;
 
 public:
 
-int* adjMatrix;
-    GraphCPU(int numVertices, int p);
+    Graph(int numVertices, int p);
 
-    ~GraphCPU();
-
-    void addEdge(int src, int dest, int weight);
+    ~Graph();
      
     int getNumVertices() const;
 
@@ -24,4 +21,4 @@ int* adjMatrix;
     const int* getAdjMatrix() const;
 };
 
-int* FloydWarshallCPU(const GraphCPU& g);
+int* FloydWarshallCPU(const Graph& g);
