@@ -16,3 +16,7 @@ cuda.o: ${CUDADIR}/CudaFunctions.cu ${CUDADIR}/CudaFunctions.cuh
 
 kernels.o: ${CUDADIR}/kernels.cu ${CUDADIR}/kernels.cuh
 	nvcc $(CXXFLAGS) $(CUFLAGS) -c ${CUDADIR}/kernels.cu -o ${OBJSDIR}/kernels.o
+
+clean:
+	rm -f fw ${OBJSDIR}/*.o
+	rm -f *.txt
