@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
-#include <string>
+#include <stdio.h>
+
 
 class Graph {
 private:
@@ -10,7 +10,7 @@ private:
 
 public:
 
-    Graph(int numVertices, int p);
+    Graph(int numVertices, int p, int seed = 1234);
 
     ~Graph();
      

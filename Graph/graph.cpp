@@ -1,12 +1,12 @@
-#include "graph.hpp"
 #include <cstring>
-#include <fstream>
 #include <iostream>
-#include <cmath>
 #include <limits.h>
 
+#include "graph.hpp"
 
-Graph::Graph(int numVertices, int p) {
+
+
+Graph::Graph(int numVertices, int p, int seed) {
     this->numVertices = numVertices;
     this->adjMatrix = new int[numVertices*numVertices];
     this->memsize = numVertices * numVertices * sizeof(int);
@@ -20,7 +20,7 @@ Graph::Graph(int numVertices, int p) {
             if (random >= p)
                 this->adjMatrix[i] = (rand() % 15) + 1;
             else
-                // (INT_MAX / 2) to avoid overflow when summing two INF
+                // (INT_MAX / 2) to avoid overflow when summing two "INF"
                 this->adjMatrix[i] = INT_MAX >> 1;
         }
     }
@@ -37,10 +37,12 @@ int Graph::getNumVertices() const {
 size_t Graph::getMatrixSize() const {
     return this->memsize;
 }
-
-inline const int* Graph::getAdjMatrix() const {
+ 
+const int* Graph::getAdjMatrix() const {
     return this->adjMatrix;
 }
+
+
 
 int* FloydWarshallCPU(const Graph& g){
     int numVertices = g.getNumVertices();
@@ -50,10 +52,7 @@ int* FloydWarshallCPU(const Graph& g){
 
     for (int k = 0; k < numVertices; k++)
         for (int i = 0; i < numVertices; i++)
-            for (int j = 0; j < numVertices; j++){
-                if (i == j)
-                    continue;
+            for (int j = 0; j < numVertices; j++)
                 W[i * numVertices + j] = std::min(W[i * numVertices + j], W[i * numVertices + k] + W[k * numVertices + j]);
-            }
     return W;
 }
