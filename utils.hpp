@@ -28,7 +28,6 @@ void verify(const int* w_CPU, const int* w_GPU, int num){
                 std::cerr << "Errore: " << w_CPU[i * num + j] << " != " << w_GPU[i * num + j] << std::endl;
                 exit(1);
             }
-    std::cout << "Verifica completata con successo" << std::endl;
 }
 
 
