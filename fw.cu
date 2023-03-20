@@ -2,28 +2,14 @@
 #include <string>
 #include <fstream>
 
+#include "utils.hpp"
 #include "Graph/graph.hpp"
 #include "Cuda/CudaFunctions.cuh"
 
 
-void err(const char *msg){
-    std::cout << msg << std::endl;
-    exit(1);
-}
-
-void writeToFile(const int* matrix, int num, std::string filename){
-    std::ofstream out(filename);
-
-    for(int i = 0; i < num; i++){
-        for(int j = 0; j < num; j++)
-            matrix[i * num + j] == INT_MAX >> 1 ? out << "INF" << " " : out << matrix[i * num + j] << "\t";
-        out << std::endl;
-    }
-
-    out.close();
-}
 
 int main(int argc, char **argv){
+    
     if(argc < 2)
         err("Utilizzo comando: ./fw num_vertices percentage (0 < percentage < 100)");
     if(argc != 3 || atoi(argv[2]) <= 0 || atoi(argv[2]) >= 100)
@@ -31,26 +17,45 @@ int main(int argc, char **argv){
 
     int p = atoi(argv[2]);
     Graph* g = new Graph(atoi(argv[1]), p);
-
-    writeToFile(g->getAdjMatrix(), g->getNumVertices(), "graph.txt");
-
-    //! ------------ FLOYD WARSHALL CPU--------------
-
-    int *d_CPU = FloydWarshallCPU(*g);
-    writeToFile(d_CPU, g->getNumVertices(), "fw_cpu.txt");
-    delete[] d_CPU;
-
-    //! --------------------------------------------------
+    std::string graphFilename = "cachedResults/results_" + std::to_string(g->getNumVertices()) + "_" + std::to_string(p) + ".txt";
 
 
-    //! ------------ SIMPLE FLOYD WARSHALL GPU --------------
+    //! ------------ CPU EXECUTION AND CACHING RESULTS --------------
+    
+    int *w_CPU;
+    std::ifstream in(graphFilename, std::ifstream::in);
 
-    int* d_GPU = simple_parallel_FW(*g);
-    writeToFile(d_GPU, g->getNumVertices(), "fw_gpu_simple.txt");
-    cuda(cudaFreeHost(d_GPU));
+    if(in.is_open()){
+        w_CPU = new int[g->getNumVertices() * g->getNumVertices()];
+        for(int i = 0; i < g->getNumVertices(); i++)
+            for(int j = 0; j < g->getNumVertices(); j++)
+                in >> w_CPU[i * g->getNumVertices() + j];
+        in.close();
+    }
+    else{
+        w_CPU = FloydWarshallCPU(*g);
+        writeToFile(w_CPU, g->getNumVertices(), graphFilename);
+    }
 
-    //! ----------------------------------------------------------
+    //! -----------------------------------------------------------
+
+
+    //! ------------ SIMPLE FLOYD WARSHALL GPU -----
+
+    int* w_GPU = simple_parallel_FW(*g);
+
+    //! ---------------------------------------------
+
+    //? -------------- VERIFY ------------------
+
+        verify(w_CPU, w_GPU, g->getNumVertices());
+
+    //? -----------------------------------------
+
 
     delete g;
+    delete[] w_CPU;
+    cuda(cudaFreeHost(w_GPU));
+    
     exit(0);
 }
