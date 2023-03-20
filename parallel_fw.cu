@@ -11,9 +11,9 @@
 int main(int argc, char **argv){
     
     if(argc < 2)
-        err("Utilizzo comando: ./fw num_vertices percentage (0 < percentage < 100)");
+        err("Utilizzo comando: ./parallel_fw num_vertices percentage (0 < percentage < 100)");
     if(argc != 3 || atoi(argv[2]) <= 0 || atoi(argv[2]) >= 100)
-        err("Utilizzo comando: ./fw num_vertices percentage (0 < percentage < 100)");
+        err("Utilizzo comando: ./parallel_fw num_vertices percentage (0 < percentage < 100)");
 
     int p = atoi(argv[2]);
     Graph* g = new Graph(atoi(argv[1]), p);

@@ -5,8 +5,8 @@ OBJSDIR = obj
 CUDADIR = Cuda
 GRAPHDIR = Graph
 
-fw: fw.cu graph.o cuda.o
-	nvcc $(CXXFLAGS) $(CUFLAGS) -o fw fw.cu ${OBJSDIR}/*.o
+parallel_fw: parallel_fw.cu graph.o cuda.o
+	nvcc $(CXXFLAGS) $(CUFLAGS) -o parallel_fw parallel_fw.cu ${OBJSDIR}/*.o
 
 graph.o: ${GRAPHDIR}/graph.cpp ${GRAPHDIR}/graph.hpp
 	nvcc $(CXXFLAGS) $(CUFLAGS) -c ${GRAPHDIR}/graph.cpp -o ${OBJSDIR}/graph.o
