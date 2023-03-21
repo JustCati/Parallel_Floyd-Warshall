@@ -45,7 +45,6 @@ int* simple_parallel_FW(const Graph& g){
         cuda(cudaEventRecord(stop));
         cuda(cudaEventSynchronize(stop));
         cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
-        std::cout << "Kernel execution n° '" << k+1 <<"' time: " << elapsedTime << " ms" << std::endl;
 
         totalElapsedTime += elapsedTime;
     }

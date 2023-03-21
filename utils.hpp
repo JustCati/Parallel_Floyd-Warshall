@@ -32,7 +32,7 @@ void verify(const int* w_CPU, const int* w_GPU, int num){
 
 
 void writeToFile(const int* matrix, int num, std::string filename){
-    std::ofstream out(filename, std::ofstream::out);
+    std::ofstream out(filename, std::ofstream::binary);
     for(int i = 0; i < num; i++){
         for(int j = 0; j < num; j++)
             out << matrix[i * num + j] << " ";
