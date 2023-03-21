@@ -9,14 +9,24 @@
 
 
 int main(int argc, char **argv){
-    
-    if(argc < 2)
-        err("Utilizzo comando: ./parallel_fw num_vertices percentage (0 < percentage < 100)");
-    if(argc != 3 || atoi(argv[2]) <= 0 || atoi(argv[2]) >= 100)
-        err("Utilizzo comando: ./parallel_fw num_vertices percentage (0 < percentage < 100)");
 
-    int p = atoi(argv[2]);
-    Graph* g = new Graph(atoi(argv[1]), p);
+    if(argc < 2)
+        err("Utilizzo comando: ./parallel_fw [-c] num_vertices percentage (0 < percentage < 100)");
+    if(argc > 4)
+        err("Utilizzo comando: ./parallel_fw [-c] num_vertices percentage (0 < percentage < 100)");
+
+    bool cpu = false;
+
+    for(int i = 1; i < argc; i++){
+        if(strcmp(argv[i], "-c") == 0)
+            cpu = true;
+    }
+
+    int p = atoi(argv[2 + cpu]);
+    if(p <= 0 || p >= 100)
+        err("Inserire percentuale compreso tra 0 e 100 (estremi esclusi)");
+
+    Graph* g = new Graph(atoi(argv[1 + cpu]), p);
     std::string graphFilename = "cachedResults/results_" + std::to_string(g->getNumVertices()) + "_" + std::to_string(p) + ".txt";
 
 
@@ -32,7 +42,7 @@ int main(int argc, char **argv){
                 in >> w_CPU[i * g->getNumVertices() + j];
         in.close();
     }
-    else{
+    else if(cpu){
         w_CPU = FloydWarshallCPU(*g);
         writeToFile(w_CPU, g->getNumVertices(), graphFilename);
     }
@@ -48,6 +58,7 @@ int main(int argc, char **argv){
 
     //? -------------- VERIFY ------------------
 
+    if(cpu)
         verify(w_CPU, w_GPU, g->getNumVertices());
 
     //? -----------------------------------------
