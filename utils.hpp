@@ -25,7 +25,7 @@ void verify(const int* w_CPU, const int* w_GPU, int num){
     for(int i = 0; i < num; i++)
         for(int j = 0; j < num; j++)
             if(w_CPU[i * num + j] != w_GPU[i * num + j]){
-                std::cerr << "Errore: " << w_CPU[i * num + j] << " != " << w_GPU[i * num + j] << std::endl;
+                std::cerr << "Errore all'indice '" << i*num + j << "' : " << w_CPU[i * num + j] << " != " << w_GPU[i * num + j] << std::endl;
                 exit(1);
             }
 }

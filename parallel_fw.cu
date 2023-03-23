@@ -10,13 +10,10 @@
 
 int main(int argc, char **argv){
 
-    if(argc < 2)
-        err("Utilizzo comando: ./parallel_fw [-c] num_vertices percentage (0 < percentage < 100)");
-    if(argc > 4)
+    if(argc < 2 || argc > 4)
         err("Utilizzo comando: ./parallel_fw [-c] num_vertices percentage (0 < percentage < 100)");
 
     bool cpu = false;
-
     for(int i = 1; i < argc; i++){
         if(strcmp(argv[i], "-c") == 0)
             cpu = true;

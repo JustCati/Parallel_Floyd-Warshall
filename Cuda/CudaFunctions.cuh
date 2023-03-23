@@ -15,7 +15,6 @@ inline void cudaCheck(cudaError_t err, const char *file, int line){
 }
 
 
-//! TODO PROFILING OF THE KERNELS' TIME
 int* simple_parallel_FW(const Graph& g);
 
 
