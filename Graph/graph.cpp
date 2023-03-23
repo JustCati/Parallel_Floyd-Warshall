@@ -6,10 +6,21 @@
 
 
 
-Graph::Graph(int numVertices, int p, int seed) {
+Graph::Graph(int numVertices, int p, int blockSize, int seed) {
+
+    int numOversize = numVertices;
+    if(blockSize){
+        int remainder = numVertices % blockSize;
+        if(remainder)
+            numOversize = numVertices + blockSize - remainder;
+    }
+
     this->numVertices = numVertices;
-    this->adjMatrix = new int[numVertices*numVertices];
-    this->memsize = numVertices * numVertices * sizeof(int);
+    this->numOversized = numOversize;
+    this->blockSize = blockSize;
+
+    this->adjMatrix = new int[this->numOversized * this->numOversized];
+    this->memsize = this->numOversized * this->numOversized * sizeof(int);
 
     // Initialize the matrix using the Erdos-Renyi algorithm
     for(int i = 0; i < this->numVertices * this->numVertices; i++){
@@ -34,21 +45,24 @@ int Graph::getNumVertices() const {
     return this->numVertices;
 }
 
-size_t Graph::getMatrixSize() const {
+size_t Graph::getMatrixMemSize() const {
     return this->memsize;
 }
  
 const int* Graph::getAdjMatrix() const {
     return this->adjMatrix;
 }
-
+ 
+int Graph::getBlockSize() const {
+    return this->blockSize;
+}
 
 
 int* FloydWarshallCPU(const Graph& g){
     int numVertices = g.getNumVertices();
     int *W = new int[g.getNumVertices() * g.getNumVertices()];
 
-    std::memcpy(W, g.getAdjMatrix(), g.getMatrixSize());
+    std::memcpy(W, g.getAdjMatrix(), g.getMatrixMemSize());
 
     for (int k = 0; k < numVertices; k++)
         for (int i = 0; i < numVertices; i++)

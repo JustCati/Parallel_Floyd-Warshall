@@ -7,23 +7,30 @@
 #include "Cuda/CudaFunctions.cuh"
 
 
-
+/*
+    -c : Enable CPU execution if results are not found in cache
+    -b : Set block size for GPU execution on Blocked Floyd-Warshall
+    -p : Set percentage for Erdos-Renyi graph generation
+*/
 int main(int argc, char **argv){
-
-    if(argc < 2 || argc > 4)
-        err("Utilizzo comando: ./parallel_fw [-c] num_vertices percentage (0 < percentage < 100)");
+    if(argc < 2 || argc > 7)
+        err("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage (0 < percentage < 100) [-b] BlockSize [-c]");
 
     bool cpu = false;
+    int blockSize = 0, p = 50;
     for(int i = 1; i < argc; i++){
+        if(strcmp(argv[i], "-p") == 0){
+            p = atoi(argv[i + 1]);
+            if(p <= 0 || p >= 100)
+                err("Inserire percentuale compreso tra 0 e 100 (estremi esclusi)");
+        }
+        if(strcmp(argv[i], "-b") == 0)
+            blockSize = atoi(argv[i + 1]);
         if(strcmp(argv[i], "-c") == 0)
             cpu = true;
     }
 
-    int p = atoi(argv[2 + cpu]);
-    if(p <= 0 || p >= 100)
-        err("Inserire percentuale compreso tra 0 e 100 (estremi esclusi)");
-
-    Graph* g = new Graph(atoi(argv[1 + cpu]), p);
+    Graph* g = new Graph(atoi(argv[1 + cpu]), p, blockSize);
     std::string graphFilename = "cachedResults/results_" + std::to_string(g->getNumVertices()) + "_" + std::to_string(p) + ".txt";
 
 

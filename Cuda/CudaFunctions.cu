@@ -9,7 +9,7 @@
 
 int* simple_parallel_FW(const Graph& g){
     int* d_matrix;
-    size_t memsize = g.getMatrixSize();
+    size_t memsize = g.getMatrixMemSize();
     const int* matrix = g.getAdjMatrix();
 
 
@@ -36,7 +36,8 @@ int* simple_parallel_FW(const Graph& g){
 
     
     //* ----- INIT AND CALL KERNEL ------
-    dim3 dimBlock = dim3(32, 32);
+    const int blockSize = g.getBlockSize();
+    dim3 dimBlock = dim3(blockSize, blockSize);
     dim3 numBlock = dim3((g.getNumVertices() + dimBlock.x - 1) / dimBlock.x, (g.getNumVertices() + dimBlock.x - 1) / dimBlock.y);
 
     cuda(cudaEventRecord(start));
