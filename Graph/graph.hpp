@@ -1,6 +1,7 @@
 #pragma once
 #include <stdio.h>
 
+#define DEFAULT_BLOCK_SIZE 32
 
 class Graph {
 private:
@@ -11,7 +12,7 @@ private:
 
 public:
 
-    Graph(int numVertices, int p = 50, int blockSize = 0, int seed = 1234);
+    Graph(int numVertices, int p = 50, bool gpu = false, int blockSize = DEFAULT_BLOCK_SIZE, int seed = 1234);
 
     ~Graph();
      

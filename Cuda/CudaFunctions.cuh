@@ -15,6 +15,7 @@ inline void cudaCheck(cudaError_t err, const char *file, int line){
 }
 
 
-int* simple_parallel_FW(const Graph& g);
+int* simple_parallel_FW(const Graph& g, bool cache = false);
 
+int* blocked_parallel_FW(const Graph& g, int block_size);
 

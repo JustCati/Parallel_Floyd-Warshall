@@ -18,3 +18,13 @@ __global__ void FW_simple_kernel(int* d_D, int n, int k) {
     }
 }
 
+
+//TODO: VALUTARE SE FARE UNA VERSIONE PER LMEM E NON (SENZA SYNCTHREAD)
+__forceinline__
+__device__ void updateBlocked(int* C, int* A, int* B, int bi, int bj, const int blockSize){
+    for(int k = 0; k < blockSize; k++){
+        if(C[bi * blockSize + bj] > A[bi * blockSize + k] + B[k * blockSize + bj])
+            C[bi * blockSize + bj] = A[bi * blockSize + k] + B[k * blockSize + bj];
+        __syncthreads();
+    }
+}

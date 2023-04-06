@@ -4,12 +4,12 @@
 
 #include "graph.hpp"
 
+#define MAXWEIGHT 15
 
-
-Graph::Graph(int numVertices, int p, int blockSize, int seed) {
+Graph::Graph(int numVertices, int p, bool gpu, int blockSize,  int seed) {
 
     int numOversize = numVertices;
-    if(blockSize){
+    if(gpu){
         int remainder = numVertices % blockSize;
         if(remainder)
             numOversize = numVertices + blockSize - remainder;
@@ -29,7 +29,7 @@ Graph::Graph(int numVertices, int p, int blockSize, int seed) {
         else{
             int random = rand() % 100;
             if (random >= p)
-                this->adjMatrix[i] = (rand() % 15) + 1;
+                this->adjMatrix[i] = (rand() % MAXWEIGHT) + 1;
             else
                 // (INT_MAX / 2) to avoid overflow when summing two "INF"
                 this->adjMatrix[i] = INT_MAX >> 1;
@@ -57,7 +57,7 @@ int Graph::getBlockSize() const {
     return this->blockSize;
 }
 
-
+//! Not Used (was for results generation in cache)
 int* FloydWarshallCPU(const Graph& g){
     int numVertices = g.getNumVertices();
     int *W = new int[g.getNumVertices() * g.getNumVertices()];
