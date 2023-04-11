@@ -35,7 +35,7 @@ __global__ void blocked_FW_phase1(int* d_D, int n, int k, const int blockSize){
     int j = threadIdx.x;
 
     extern __shared__ int lmem[];
-    int* lmem_A = lmem;
+    int* lmem_A = (int*)lmem;
 
     lmem_A[i * blockSize + j] = d_D[(k * blockSize * n) + (k * blockSize) + (i * n + j)];
     __syncthreads();
@@ -60,9 +60,8 @@ __global__ void blocked_FW_phase2(int* d_D, int n, int k, const int blockSize){
 
     // Uno per il blocco da modificare e l'altro per il blocco di dipendenza
     extern __shared__ int lmem[];
-    int* lmem_A = lmem;
-    int* lmem_B = lmem + (blockSize * blockSize * sizeof(int));
-
+    int* lmem_A = (int*)lmem;
+    int* lmem_B = (int*)(&lmem_A[blockSize * blockSize]);
 
     lmem_A[i * blockSize + j] = d_D[(x * blockSize * n) + (k * blockSize) + (i * n + j)];
     lmem_B[i * blockSize + j] = d_D[(k * blockSize * n) + (k * blockSize) + (i * n + j)];
@@ -97,9 +96,9 @@ __global__ void blocked_FW_phase3(int* d_D, int n, int k, const int blockSize){
         return;
 
     extern __shared__ int lmem[];
-    int* lmem_A = lmem;
-    int* lmem_B = lmem + (blockSize * blockSize * sizeof(int));
-    int* lmem_C = lmem + (2 * blockSize * blockSize * sizeof(int));
+    int* lmem_A = (int*)lmem;
+    int* lmem_B = (int*)(&lmem_A[blockSize * blockSize]);
+    int* lmem_C = (int*)(&lmem_B[blockSize * blockSize]);
 
     lmem_A[i * blockSize + j] = d_D[(x * blockSize * n) + (y * blockSize) + (i * n + j)];
     lmem_B[i * blockSize + j] = d_D[(x * blockSize * n) + (k * blockSize) + (i * n + j)];
