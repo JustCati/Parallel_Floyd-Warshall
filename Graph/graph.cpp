@@ -4,8 +4,8 @@
 #include "graph.hpp"
 
 
-int* graphInit(int numVertices, int p, int seed){
-    int *g = new int[numVertices * numVertices];
+short* graphInit(int numVertices, int p, int seed){
+    short* g = new short[numVertices * numVertices];
 
     srand(seed);
     for(int i = 0; i < numVertices; i++){
@@ -14,18 +14,18 @@ int* graphInit(int numVertices, int p, int seed){
                 g[i * numVertices + j] = 0;
                 continue;
             }
-            int perc = rand() / (RAND_MAX / 100) + 1;
+            short perc = rand() / (RAND_MAX / 100) + 1;
             if(perc >= p)
                 g[i * numVertices + j] = rand() / (RAND_MAX >> 4) + 1;
             else
-                g[i * numVertices + j] = INT_MAX >> 1;
+                g[i * numVertices + j] = SHRT_MAX >> 1;
         }
     }
     return g;
 }
 
 
-int* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
+short* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
     int numCol;
     int remainder = numVertices - blockSize * (numVertices / blockSize);
 
@@ -33,7 +33,7 @@ int* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
         numCol = numVertices + blockSize - remainder;
     else 
         numCol = numVertices;
-    int *g = new int[numCol * numCol];
+    short* g = new short[numCol * numCol];
 
     srand(seed);
     for(int i = 0; i < numCol; i++){
@@ -43,22 +43,22 @@ int* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
                     g[i * numCol + j] = 0;
                     continue;
                 }
-                int perc = rand() / (RAND_MAX / 100) + 1;
+                short perc = rand() / (RAND_MAX / 100) + 1;
                 if(perc >= p)
                     g[i * numCol + j] = rand() / (RAND_MAX >> 4) + 1;
                 else
-                    g[i * numCol + j] = INT_MAX >> 1;
+                    g[i * numCol + j] = SHRT_MAX >> 1;
             }
             else
-                g[i * numCol + j] = INT_MAX >> 1;
+                g[i * numCol + j] = SHRT_MAX >> 1;
         }
     }
     return g;
 }
 
 
-int* FloydWarshallCPU(const int* g, int numVertices, int numCol){
-    int *W = new int[numVertices * numVertices];
+short* FloydWarshallCPU(const short* g, int numVertices, int numCol){
+    short* W = new short[numVertices * numVertices];
 
     for(int i = 0; i < numVertices; i++)
         for(int j = 0; j < numVertices; j++)
@@ -67,7 +67,7 @@ int* FloydWarshallCPU(const int* g, int numVertices, int numCol){
     for (int k = 0; k < numVertices; k++)
         for (int i = 0; i < numVertices; i++)
             for (int j = 0; j < numVertices; j++)
-                W[i * numVertices + j] = std::min(W[i * numVertices + j], W[i * numVertices + k] + W[k * numVertices + j]);
+                W[i * numVertices + j] = std::min(W[i * numVertices + j], (short)(W[i * numVertices + k] + W[k * numVertices + j]));
     
     return W;
 }

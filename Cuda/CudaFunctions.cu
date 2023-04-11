@@ -23,13 +23,13 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
         std::cout << outputs[i] << times[i] << " ms" << std::endl;
     
     std::cout << std::endl;
-    std::cout << "Total time: " << std::accumulate(times.begin(), times.end(), 0.0) / 1000 << " s" << std::endl;
+    std::cout << "Total Kernel time: " << std::accumulate(times.begin(), times.end(), 0.0) / 1000 << " s" << std::endl;
 }
 
 
-int* simple_parallel_FW(const int* g, int numVertices, int blockSize){
-    int* d_matrix;
-    size_t memsize = numVertices * numVertices * sizeof(int);
+short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool debug){
+    short* d_matrix, *h_matrix;
+    size_t memsize = numVertices * numVertices * sizeof(short);
 
     float elapsedTime;
     std::vector<float> times;
@@ -72,10 +72,9 @@ int* simple_parallel_FW(const int* g, int numVertices, int blockSize){
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
 
-    outputs.push_back("Total kernel: ");
+    outputs.push_back("Total kernel call: ");
     times.push_back(elapsedTime);
 
-    int* h_matrix;
     cuda(cudaEventRecord(start));
     cuda(cudaMallocHost(&h_matrix, memsize)); //* allocate memory on host
     cuda(cudaEventRecord(stop));
@@ -94,8 +93,10 @@ int* simple_parallel_FW(const int* g, int numVertices, int blockSize){
     outputs.push_back("CudaMemCpy to host: ");
     times.push_back(elapsedTime);
 
-    std::string title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) + " nodes";
-    printMetrics(title, outputs, times); //* print metrics
+    if(!debug){
+        std::string title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) + " nodes";
+        printMetrics(title, outputs, times); //* print metrics
+    }
 
     cuda(cudaEventDestroy(start));
     cuda(cudaEventDestroy(stop));
@@ -104,9 +105,9 @@ int* simple_parallel_FW(const int* g, int numVertices, int blockSize){
 }
 
 
-int* blocked_parallel_FW(const int* g, int numVertices, int blockSize){
-    int* d_matrix;
-    size_t memsize = numVertices * numVertices * sizeof(int);
+short* blocked_parallel_FW(const short* g, int numVertices, int blockSize){
+    short* d_matrix, *h_matrix;
+    size_t memsize = numVertices * numVertices * sizeof(short);
 
     float elapsedTime;
     std::vector<float> times;
@@ -153,10 +154,9 @@ int* blocked_parallel_FW(const int* g, int numVertices, int blockSize){
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
 
-    outputs.push_back("Total kernel: ");
+    outputs.push_back("Total kernel call: ");
     times.push_back(elapsedTime);
 
-    int* h_matrix;
     cuda(cudaEventRecord(start));
     cuda(cudaMallocHost(&h_matrix, memsize)); //* allocate memory on host
     cuda(cudaEventRecord(stop));

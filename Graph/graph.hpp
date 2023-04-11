@@ -4,8 +4,8 @@
 #define DEFAULT_BLOCK_SIZE 32
 
 
-int* graphInit(int numVertices, int p, int seed = 1234);
+short* graphInit(int numVertices, int p, int seed = 1234);
 
-int* blockedGraphInit(int numVertices, int p, int blockSize = DEFAULT_BLOCK_SIZE, int seed = 1234);
+short* blockedGraphInit(int numVertices, int p, int blockSize = DEFAULT_BLOCK_SIZE, int seed = 1234);
 
-int* FloydWarshallCPU(const int* g, int numVertices, int numCol);
+short* FloydWarshallCPU(const short* g, int numVertices, int numCol);

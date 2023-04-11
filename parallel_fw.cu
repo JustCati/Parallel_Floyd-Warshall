@@ -6,6 +6,8 @@
 #include "Graph/graph.hpp"
 #include "Cuda/CudaFunctions.cuh"
 
+#define CPU_VERT_LIMIT 4096
+
 /*
     -v: verify
     -c: if necessary save results to file (cache)
@@ -39,7 +41,7 @@ int main(int argc, char **argv){
             toVerify = true;
     }
 
-    int* graph = nullptr;
+    short* graph = nullptr;
     int numVertices = atoi(argv[1]), numCol = numVertices;
 
     if(algorithm){
@@ -55,7 +57,7 @@ int main(int argc, char **argv){
 
     //! ------------ PARALLEL FLOYD WARSHALL ON GPU -----
 
-    int* w_GPU = nullptr;
+    short* w_GPU = nullptr;
     if (algorithm)
         w_GPU = blocked_parallel_FW(graph, numCol, blockSize);
     else
@@ -65,26 +67,34 @@ int main(int argc, char **argv){
 
     //! ------------ VERIFY --------------
     if(toVerify){
+        bool cpuExec = numVertices < CPU_VERT_LIMIT;
+        
         std::ifstream in;
-        int *resultsCached = nullptr;
+        short* resultsCached = nullptr;
         std::string graphFilename = "cachedResults/results_" + std::to_string(numVertices) + "_" + std::to_string(perc) + ".txt";
 
         in.open(graphFilename, std::ifstream::in);
         if(in.is_open()){
-            resultsCached = new int[numVertices * numVertices];
+            resultsCached = new short[numVertices * numVertices];
             for(int i = 0; i < numVertices; i++)
                 for(int j = 0; j < numVertices; j++)
                     in >> resultsCached[i * numVertices + j];
             in.close();
         }
-        else
+        else if (cpuExec)
             resultsCached = FloydWarshallCPU(graph, numVertices, numCol);
+        else
+            resultsCached = simple_parallel_FW(graph, numCol, blockSize, true);
 
         if(saveToCache)
             writeToFile(resultsCached, numVertices, numVertices, graphFilename);
 
         verify(resultsCached, numVertices, w_GPU, numCol);
-        delete[] resultsCached;
+
+        if(cpuExec)
+            delete[] resultsCached;
+        else
+            cuda(cudaFreeHost(resultsCached));
     }
 
     //! -----------------------------------------------------------

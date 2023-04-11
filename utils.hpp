@@ -9,7 +9,7 @@ void err(const char *msg){
     exit(1);
 }
 
-void printMatrix(const int* matrix, int numVertices, int numCol){
+void printMatrix(const short* matrix, int numVertices, int numCol){
     for(int i = 0; i < numVertices; i++){
         for(int j = 0; j < numVertices; j++){
             if(matrix[i * numCol + j] == INT_MAX >> 1)
@@ -21,16 +21,18 @@ void printMatrix(const int* matrix, int numVertices, int numCol){
     }
 }
 
-void verify(const int* w_CPU, int numColCPU, const int* w_GPU, int numColGPU){
+void verify(const short* w_CPU, int numColCPU, const short* w_GPU, int numColGPU){
+    std::cout << std::endl <<  "Verifica..." << std::endl;
     for(int i = 0; i < numColCPU; i++)
         for(int j = 0; j < numColCPU; j++)
             if(w_CPU[i * numColCPU + j] != w_GPU[i * numColGPU + j])
                 std::cerr << "Errore all'indice '" << i * numColCPU + j << "' : " << \
                 w_CPU[i * numColCPU + j] << " != " << w_GPU[i * numColGPU + j] << std::endl;
+    std::cout << "Verifica completata!" << std::endl;
 }
 
 
-void writeToFile(const int* matrix, int numVertices, int numCol, std::string filename){
+void writeToFile(const short* matrix, int numVertices, int numCol, std::string filename){
     std::ofstream out(filename, std::ofstream::binary);
     for(int i = 0; i < numVertices; i++){
         for(int j = 0; j < numVertices; j++)
