@@ -9,9 +9,9 @@ void err(const char *msg){
     exit(1);
 }
 
-void printMatrix(const int* matrix, int num){
-    for(int i = 0; i < num; i++){
-        for(int j = 0; j < num; j++){
+void printMatrix(const int* matrix, int num, int numVertices){
+    for(int i = 0; i < numVertices; i++){
+        for(int j = 0; j < numVertices; j++){
             if(matrix[i * num + j] == INT_MAX >> 1)
                 std::cout << "INF" << "\t";
             else
@@ -21,13 +21,11 @@ void printMatrix(const int* matrix, int num){
     }
 }
 
-void verify(const int* w_CPU, const int* w_GPU, int num){
-    for(int i = 0; i < num; i++)
-        for(int j = 0; j < num; j++)
-            if(w_CPU[i * num + j] != w_GPU[i * num + j]){
-                std::cerr << "Errore all'indice '" << i*num + j << "' : " << w_CPU[i * num + j] << " != " << w_GPU[i * num + j] << std::endl;
-                exit(1);
-            }
+void verify(const int* w_CPU, int numCPU, const int* w_GPU, int numGPU){
+    for(int i = 0; i < numCPU; i++)
+        for(int j = 0; j < numCPU; j++)
+            if(w_CPU[i * numCPU + j] != w_GPU[i * numGPU + j])
+                std::cerr << "Errore all'indice '" << i*numCPU + j << "' : " << w_CPU[i * numCPU + j] << " != " << w_GPU[i * numGPU+ j] << std::endl;
 }
 
 

@@ -7,14 +7,18 @@
 #include "Cuda/CudaFunctions.cuh"
 
 /*
+    -v: verify
+    -c: if necessary save results to file (cache)
     -b <block size>: Set block size for GPU execution on Blocked Floyd-Warshall
     -p <percentage>: Set percentage for Erdos-Renyi graph generation
+    -a <algorithm>: Set algorithm to use (0: simple, 1: blocked)
 */
 int main(int argc, char **argv){
     int perc = 50, blockSize = 0;
+    bool algorithm = 0, saveToCache = false, toVerify = false;
 
-    if(argc < 2 || argc > 6)
-        err("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize");
+    if(argc < 2 || argc > 10)
+        err("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-v]");
     
     for(int i = 1; i < argc; i++){
         if(strcmp(argv[i], "-p") == 0){
@@ -24,45 +28,70 @@ int main(int argc, char **argv){
         }
         if(strcmp(argv[i], "-b") == 0)
             blockSize = atoi(argv[i + 1]);
+        if(strcmp(argv[i], "-c") == 0)
+            saveToCache = true;
+        if(strcmp(argv[i], "-a") == 0)
+            if(atoi(argv[i + 1]) != 0 && atoi(argv[i + 1]) != 1)
+                err("Inserire 0 per algoritmo semplice, 1 per algoritmo bloccato");
+            else
+                algorithm = atoi(argv[i + 1]);
+        if(strcmp(argv[i], "-v") == 0)
+            toVerify = true;
     }
 
-    Graph* g = new Graph(atoi(argv[1]), perc, (blockSize != 0));
-    std::string graphFilename = "cachedResults/results_" + std::to_string(g->getNumVertices()) + "_" + std::to_string(perc) + ".txt";
+    int* graph = nullptr;
+    int numVertices = atoi(argv[1]), numVerticesGPU = numVertices;
 
-    //! ------------ SIMPLE FLOYD WARSHALL GPU -----
+    if(algorithm){
+        int remainder = numVertices - blockSize * (numVertices / blockSize);
+        if (remainder)
+            numVerticesGPU = numVertices + blockSize - remainder;
 
-    int* w_GPU = simple_parallel_FW(*g);
+        graph = blockedGraphInit(numVertices, perc, blockSize);
+    }
+    else
+        graph = graphInit(numVertices, perc);
+
+
+    //! ------------ PARALLEL FLOYD WARSHALL ON GPU -----
+
+    int* w_GPU = nullptr;
+    if (algorithm)
+        w_GPU = blocked_parallel_FW(graph, numVerticesGPU, blockSize, false);
+    else
+        w_GPU = simple_parallel_FW(graph, numVerticesGPU, blockSize, false);
 
     //! ---------------------------------------------
 
-    //! ------------ CACHED RESULTS READING/WRITING --------------
+    //! ------------ VERIFY --------------
     
+    std::ifstream in;
     int *resultsCached = nullptr;
-    std::ifstream in(graphFilename, std::ifstream::in);
 
-    if(in.is_open()){
-        resultsCached = new int[g->getNumVertices() * g->getNumVertices()];
-        for(int i = 0; i < g->getNumVertices(); i++)
-            for(int j = 0; j < g->getNumVertices(); j++)
-                in >> resultsCached[i * g->getNumVertices() + j];
-        in.close();
+    if(toVerify){
+        std::string graphFilename = "cachedResults/results_" + std::to_string(numVertices) + "_" + std::to_string(perc) + ".txt";
+        in.open(graphFilename, std::ifstream::in);
+
+        if(in.is_open()){
+            resultsCached = new int[numVertices * numVertices];
+            for(int i = 0; i < numVertices; i++)
+                for(int j = 0; j < numVertices; j++)
+                    in >> resultsCached[i * numVertices + j];
+            in.close();
+        }
+        else
+            resultsCached = FloydWarshallCPU(graph, numVertices);
+
+        if(saveToCache)
+            writeToFile(resultsCached, numVertices, graphFilename);
+
+        verify(resultsCached, numVertices, w_GPU, numVerticesGPU);
+        delete[] resultsCached;
     }
-    else
-        resultsCached = simple_parallel_FW(*g, true);
-
-    writeToFile(resultsCached, g->getNumVertices(), graphFilename);
 
     //! -----------------------------------------------------------
 
-    //? -------------- VERIFY ------------------
-        
-    verify(resultsCached, w_GPU, g->getNumVertices());
-
-    //? -----------------------------------------
-
-    delete g;
-    delete[] resultsCached;
+    delete[] graph;
     cuda(cudaFreeHost(w_GPU));
-    
     exit(0);
 }

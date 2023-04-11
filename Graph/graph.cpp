@@ -4,65 +4,66 @@
 
 #include "graph.hpp"
 
-#define MAXWEIGHT 15
 
-Graph::Graph(int numVertices, int p, bool gpu, int blockSize,  int seed) {
+int* graphInit(int numVertices, int p, int seed){
+    int *g = new int[numVertices * numVertices];
 
-    int numOversize = numVertices;
-    if(gpu){
-        int remainder = numVertices % blockSize;
-        if(remainder)
-            numOversize = numVertices + blockSize - remainder;
-    }
-
-    this->numVertices = numVertices;
-    this->numOversized = numOversize;
-    this->blockSize = blockSize;
-
-    this->adjMatrix = new int[this->numOversized * this->numOversized];
-    this->memsize = this->numOversized * this->numOversized * sizeof(int);
-
-    // Initialize the matrix using the Erdos-Renyi algorithm
-    for(int i = 0; i < this->numVertices * this->numVertices; i++){
-        if (i % (this->numVertices + 1) == 0)
-            this->adjMatrix[i] = 0;
-        else{
-            int random = rand() % 100;
-            if (random >= p)
-                this->adjMatrix[i] = (rand() % MAXWEIGHT) + 1;
+    srand(seed);
+    for(int i = 0; i < numVertices; i++){
+        for(int j = 0; j < numVertices; j++){
+            if(i == j){
+                g[i * numVertices + j] = 0;
+                continue;
+            }
+            int perc = rand() / (RAND_MAX / 100) + 1;
+            if(perc >= p)
+                g[i * numVertices + j] = rand() / (RAND_MAX >> 4) + 1;
             else
-                // (INT_MAX / 2) to avoid overflow when summing two "INF"
-                this->adjMatrix[i] = INT_MAX >> 1;
+                g[i * numVertices + j] = INT_MAX >> 1;
         }
     }
+    return g;
 }
 
-Graph::~Graph() {
-    delete[] this->adjMatrix;
-}
- 
-int Graph::getNumVertices() const {
-    return this->numVertices;
+
+int* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
+    int num;
+    int remainder = numVertices - blockSize * (numVertices / blockSize);
+
+    if (remainder != 0)
+        num = numVertices + blockSize - remainder;
+    else 
+        num = numVertices;
+    int *g = new int[num * num];
+
+    srand(seed);
+    for(int i = 0; i < num; i++){
+        for(int j = 0; j < num; j++){
+            if(i < numVertices && j < numVertices){
+                if (i == j){
+                    g[i * num + j] = 0;
+                    continue;
+                }
+                int perc = rand() / (RAND_MAX / 100) + 1;
+                if(perc >= p){
+                    g[i * num + j] = rand() / (RAND_MAX >> 4) + 1;
+                }
+                else
+                    g[i * num + j] = INT_MAX >> 1;
+            }
+            else
+                g[i * num + j] = INT_MAX >> 1;
+        }
+    }
+    return g;
 }
 
-size_t Graph::getMatrixMemSize() const {
-    return this->memsize;
-}
- 
-const int* Graph::getAdjMatrix() const {
-    return this->adjMatrix;
-}
- 
-int Graph::getBlockSize() const {
-    return this->blockSize;
-}
 
-//! Not Used (was for results generation in cache)
-int* FloydWarshallCPU(const Graph& g){
-    int numVertices = g.getNumVertices();
-    int *W = new int[g.getNumVertices() * g.getNumVertices()];
+int* FloydWarshallCPU(const int* g, int numVertices){
+    int *W = new int[numVertices * numVertices];
+    size_t memsize = numVertices * numVertices * sizeof(int);
 
-    std::memcpy(W, g.getAdjMatrix(), g.getMatrixMemSize());
+    std::memcpy(W, g, memsize);
 
     for (int k = 0; k < numVertices; k++)
         for (int i = 0; i < numVertices; i++)
