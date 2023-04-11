@@ -9,33 +9,33 @@ void err(const char *msg){
     exit(1);
 }
 
-void printMatrix(const int* matrix, int num, int numVertices){
+void printMatrix(const int* matrix, int numVertices, int numCol){
     for(int i = 0; i < numVertices; i++){
         for(int j = 0; j < numVertices; j++){
-            if(matrix[i * num + j] == INT_MAX >> 1)
+            if(matrix[i * numCol + j] == INT_MAX >> 1)
                 std::cout << "INF" << "\t";
             else
-                std::cout << matrix[i * num + j] << "\t";
+                std::cout << matrix[i * numCol + j] << "\t";
         }
         std::cout << std::endl;
     }
 }
 
-void verify(const int* w_CPU, int numCPU, const int* w_GPU, int numGPU){
-    for(int i = 0; i < numCPU; i++)
-        for(int j = 0; j < numCPU; j++)
-            if(w_CPU[i * numCPU + j] != w_GPU[i * numGPU + j])
-                std::cerr << "Errore all'indice '" << i*numCPU + j << "' : " << w_CPU[i * numCPU + j] << " != " << w_GPU[i * numGPU+ j] << std::endl;
+void verify(const int* w_CPU, int numColCPU, const int* w_GPU, int numColGPU){
+    for(int i = 0; i < numColCPU; i++)
+        for(int j = 0; j < numColCPU; j++)
+            if(w_CPU[i * numColCPU + j] != w_GPU[i * numColGPU + j])
+                std::cerr << "Errore all'indice '" << i * numColCPU + j << "' : " << \
+                w_CPU[i * numColCPU + j] << " != " << w_GPU[i * numColGPU + j] << std::endl;
 }
 
 
-void writeToFile(const int* matrix, int num, std::string filename){
+void writeToFile(const int* matrix, int numVertices, int numCol, std::string filename){
     std::ofstream out(filename, std::ofstream::binary);
-    for(int i = 0; i < num; i++){
-        for(int j = 0; j < num; j++)
-            out << matrix[i * num + j] << " ";
+    for(int i = 0; i < numVertices; i++){
+        for(int j = 0; j < numVertices; j++)
+            out << matrix[i * numCol + j] << " ";
         out << std::endl;
     }
     out.close();
 }
-

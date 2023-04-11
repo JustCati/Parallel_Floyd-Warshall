@@ -40,12 +40,12 @@ int main(int argc, char **argv){
     }
 
     int* graph = nullptr;
-    int numVertices = atoi(argv[1]), numVerticesGPU = numVertices;
+    int numVertices = atoi(argv[1]), numCol = numVertices;
 
     if(algorithm){
         int remainder = numVertices - blockSize * (numVertices / blockSize);
         if (remainder)
-            numVerticesGPU = numVertices + blockSize - remainder;
+            numCol = numVertices + blockSize - remainder;
 
         graph = blockedGraphInit(numVertices, perc, blockSize);
     }
@@ -57,21 +57,19 @@ int main(int argc, char **argv){
 
     int* w_GPU = nullptr;
     if (algorithm)
-        w_GPU = blocked_parallel_FW(graph, numVerticesGPU, blockSize, false);
+        w_GPU = blocked_parallel_FW(graph, numCol, blockSize);
     else
-        w_GPU = simple_parallel_FW(graph, numVerticesGPU, blockSize, false);
+        w_GPU = simple_parallel_FW(graph, numCol, blockSize);
 
     //! ---------------------------------------------
 
     //! ------------ VERIFY --------------
-    
-    std::ifstream in;
-    int *resultsCached = nullptr;
-
     if(toVerify){
+        std::ifstream in;
+        int *resultsCached = nullptr;
         std::string graphFilename = "cachedResults/results_" + std::to_string(numVertices) + "_" + std::to_string(perc) + ".txt";
-        in.open(graphFilename, std::ifstream::in);
 
+        in.open(graphFilename, std::ifstream::in);
         if(in.is_open()){
             resultsCached = new int[numVertices * numVertices];
             for(int i = 0; i < numVertices; i++)
@@ -80,12 +78,12 @@ int main(int argc, char **argv){
             in.close();
         }
         else
-            resultsCached = FloydWarshallCPU(graph, numVertices);
+            resultsCached = FloydWarshallCPU(graph, numVertices, numCol);
 
         if(saveToCache)
-            writeToFile(resultsCached, numVertices, graphFilename);
+            writeToFile(resultsCached, numVertices, numVertices, graphFilename);
 
-        verify(resultsCached, numVertices, w_GPU, numVerticesGPU);
+        verify(resultsCached, numVertices, w_GPU, numCol);
         delete[] resultsCached;
     }
 

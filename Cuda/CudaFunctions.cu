@@ -27,7 +27,7 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
 }
 
 
-int* simple_parallel_FW(const int* g, int numVertices, int blockSize, bool cache){
+int* simple_parallel_FW(const int* g, int numVertices, int blockSize){
     int* d_matrix;
     size_t memsize = numVertices * numVertices * sizeof(int);
 
@@ -95,8 +95,7 @@ int* simple_parallel_FW(const int* g, int numVertices, int blockSize, bool cache
     times.push_back(elapsedTime);
 
     std::string title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) + " nodes";
-    if(!cache)
-        printMetrics(title, outputs, times); //* print metrics
+    printMetrics(title, outputs, times); //* print metrics
 
     cuda(cudaEventDestroy(start));
     cuda(cudaEventDestroy(stop));
@@ -105,7 +104,7 @@ int* simple_parallel_FW(const int* g, int numVertices, int blockSize, bool cache
 }
 
 
-int* blocked_parallel_FW(const int* g, int numVertices, int blockSize, bool cache){
+int* blocked_parallel_FW(const int* g, int numVertices, int blockSize){
     int* d_matrix;
     size_t memsize = numVertices * numVertices * sizeof(int);
 
@@ -177,8 +176,7 @@ int* blocked_parallel_FW(const int* g, int numVertices, int blockSize, bool cach
     times.push_back(elapsedTime);
 
     std::string title =  "Starting BLOCKED FW KERNEL with " + std::to_string(numVertices) + " nodes";
-    if(!cache)
-        printMetrics(title, outputs, times); //* print metrics
+    printMetrics(title, outputs, times); //* print metrics
 
     cuda(cudaEventDestroy(start));
     cuda(cudaEventDestroy(stop));
