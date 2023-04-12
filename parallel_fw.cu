@@ -16,8 +16,8 @@
     -a <algorithm>: Set algorithm to use (0: simple, 1: blocked)
 */
 int main(int argc, char **argv){
-    int perc = 50, blockSize = 0;
-    bool algorithm = 0, saveToCache = false, toVerify = false;
+    int perc = 50, blockSize = 0, algorithm = 0;
+    bool saveToCache = false, toVerify = false;
 
     if(argc < 2 || argc > 10)
         err("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-v]");
@@ -32,11 +32,11 @@ int main(int argc, char **argv){
             blockSize = atoi(argv[i + 1]);
         if(strcmp(argv[i], "-c") == 0)
             saveToCache = true;
-        if(strcmp(argv[i], "-a") == 0)
-            if(atoi(argv[i + 1]) != 0 && atoi(argv[i + 1]) != 1)
-                err("Inserire 0 per algoritmo semplice, 1 per algoritmo bloccato");
-            else
-                algorithm = atoi(argv[i + 1]);
+        if(strcmp(argv[i], "-a") == 0){
+            algorithm = atoi(argv[i + 1]);
+            if(algorithm == 0 || (algorithm != 1 && algorithm != 2 && algorithm != 3))
+                err("Inserire 1 per FW su CPU, 2 per FW parallelizzato su global memory, 3 per FW parallelizzato su shared memory (blocked)");
+        }
         if(strcmp(argv[i], "-v") == 0)
             toVerify = true;
     }
@@ -44,7 +44,7 @@ int main(int argc, char **argv){
     short* graph = nullptr;
     int numVertices = atoi(argv[1]), numCol = numVertices;
 
-    if(algorithm){
+    if(algorithm == 3 && blockSize != 0){
         int remainder = numVertices - blockSize * (numVertices / blockSize);
         if (remainder)
             numCol = numVertices + blockSize - remainder;
@@ -58,16 +58,23 @@ int main(int argc, char **argv){
     //! ------------ PARALLEL FLOYD WARSHALL ON GPU -----
 
     short* w_GPU = nullptr;
-    if (algorithm)
-        w_GPU = blocked_parallel_FW(graph, numCol, blockSize);
-    else
-        w_GPU = simple_parallel_FW(graph, numCol, blockSize);
+    switch (algorithm){
+        case 1:
+            w_GPU = FloydWarshallCPU(graph, numVertices, numCol);
+            break;
+        case 2:
+            w_GPU = simple_parallel_FW(graph, numCol, blockSize);
+            break;
+        case 3:
+            w_GPU = blocked_parallel_FW(graph, numCol, blockSize);
+            break;
+    }
 
-    //! ---------------------------------------------
+    //! ----------------------------------------------
 
-    //! ------------ VERIFY --------------
+    //! ------------------ VERIFY --------------------
     if(toVerify){
-        bool cpuExec = numVertices < CPU_VERT_LIMIT;
+        bool cpuExec = true;
         
         std::ifstream in;
         short* resultsCached = nullptr;
@@ -81,10 +88,12 @@ int main(int argc, char **argv){
                     in >> resultsCached[i * numVertices + j];
             in.close();
         }
-        else if (cpuExec)
+        else if (numVertices < CPU_VERT_LIMIT)
             resultsCached = FloydWarshallCPU(graph, numVertices, numCol);
-        else
+        else{
+            cpuExec = false;
             resultsCached = simple_parallel_FW(graph, numCol, blockSize, true);
+        }
 
         if(saveToCache)
             writeToFile(resultsCached, numVertices, numVertices, graphFilename);
@@ -99,7 +108,11 @@ int main(int argc, char **argv){
 
     //! -----------------------------------------------------------
 
+    if(algorithm == 1)
+        delete[] w_GPU;
+    else
+        cuda(cudaFreeHost(w_GPU));
+
     delete[] graph;
-    cuda(cudaFreeHost(w_GPU));
     exit(0);
 }
