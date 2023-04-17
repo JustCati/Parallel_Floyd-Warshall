@@ -4,6 +4,23 @@
 
 
 
+__global__ void FW_simple_kernel_pitch(short* d_D, int pitch, int n, int k) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    short* d_D_Pitch_i = (short*)((char*)d_D + i * pitch);
+    short* d_D_Pitch_k = (short*)((char*)d_D + k * pitch);
+  
+    if (i < n && j < n) {
+        short ij = d_D_Pitch_i[j];
+        short ik = d_D_Pitch_i[k];
+        short kj = d_D_Pitch_k[j];
+
+        if (ik + kj < ij)
+            d_D_Pitch_i[j] = ik + kj;
+    }
+}
+
 __global__ void FW_simple_kernel(short* d_D, int n, int k) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;

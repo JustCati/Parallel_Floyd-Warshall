@@ -10,9 +10,10 @@ void err(const char *msg){
 }
 
 void printMatrix(const short* matrix, int numVertices, int numCol){
+    std::cout << std::endl;
     for(int i = 0; i < numVertices; i++){
         for(int j = 0; j < numVertices; j++){
-            if(matrix[i * numCol + j] == INT_MAX >> 1)
+            if(matrix[i * numCol + j] == SHRT_MAX >> 1)
                 std::cout << "INF" << "\t";
             else
                 std::cout << matrix[i * numCol + j] << "\t";

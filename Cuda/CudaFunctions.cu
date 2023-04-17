@@ -19,16 +19,25 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
         return;
     }
     std::cout << title << std::endl << std::endl;
-    for(int i = 0; i < outputs.size(); i++)
-        std::cout << outputs[i] << times[i] << " ms" << std::endl;
+    for(int i = 0; i < outputs.size(); i++){
+        std::cout << outputs[i] << times[i];
+        if(outputs[i].find("Bandwidth") == std::string::npos)
+            std::cout << " ms";
+        else
+            std::cout << " GB/s";
+        std::cout << std::endl;
+    }
     
     std::cout << std::endl;
     std::cout << "Total Kernel time: " << std::accumulate(times.begin(), times.end(), 0.0) / 1000 << " s" << std::endl;
 }
 
 
-short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool debug){
+
+short* simple_parallel_FW(const short* g, int numVertices, bool usePitch, int blockSize, bool debug){
+    size_t pitch = 0;
     short* d_matrix, *h_matrix;
+    size_t singleRow_memsize = numVertices * sizeof(short);
     size_t memsize = numVertices * numVertices * sizeof(short);
 
     float elapsedTime;
@@ -40,7 +49,12 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool d
     cuda(cudaEventCreate(&stop));
 
     cuda(cudaEventRecord(start));
-    cuda(cudaMalloc(&d_matrix, memsize)); //* allocate memory on device
+    if (usePitch){
+        cuda(cudaMallocPitch(&d_matrix, &pitch, singleRow_memsize, numVertices)); //* allocate memory on device
+    }
+    else{
+        cuda(cudaMalloc(&d_matrix, memsize)); //* allocate memory on device
+    }
     cuda(cudaEventRecord(stop));
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
@@ -49,22 +63,33 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool d
     times.push_back(elapsedTime);
 
     cuda(cudaEventRecord(start));
-    cuda(cudaMemcpy(d_matrix, g, memsize, cudaMemcpyHostToDevice)); //* copy matrix to device
+    if (usePitch){
+        cuda(cudaMemcpy2D(d_matrix, pitch, g, singleRow_memsize, singleRow_memsize, numVertices, cudaMemcpyHostToDevice)); //* copy matrix to device
+    }
+    else{
+        cuda(cudaMemcpy(d_matrix, g, memsize, cudaMemcpyHostToDevice)); //* copy matrix to device
+    }
     cuda(cudaEventRecord(stop));
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
 
     outputs.push_back("CudaMemCpy to device: ");
     times.push_back(elapsedTime);
+    outputs.push_back("CudaMemCpy to device Bandwidth: ");
+    times.push_back(memsize / elapsedTime / 1.0e6);
 
     cuda(cudaEventRecord(start));
 
     //* ---------------------- KERNEL ---------------------- *//
     dim3 dimBlock = dim3(blockSize, blockSize);
-    dim3 numBlock = dim3((numVertices + dimBlock.x - 1) / dimBlock.x, (numVertices + dimBlock.x - 1) / dimBlock.y);
+    dim3 numBlock = dim3((numVertices + dimBlock.x - 1) / dimBlock.x, (numVertices + dimBlock.y - 1) / dimBlock.y);
 
-    for(int k = 0; k < numVertices; k++)
-        FW_simple_kernel<<<numBlock, dimBlock>>>(d_matrix, numVertices, k); //* call kernel
+    if(usePitch)
+        for(int k = 0; k < numVertices; k++)
+            FW_simple_kernel_pitch<<<numBlock, dimBlock>>>(d_matrix, pitch, numVertices, k); //* call kernel
+    else
+        for(int k = 0; k < numVertices; k++)
+            FW_simple_kernel<<<numBlock, dimBlock>>>(d_matrix, numVertices, k); //* call kernel
     
     //* ---------------------------------------------------- *//
     
@@ -85,16 +110,27 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool d
     times.push_back(elapsedTime);
 
     cuda(cudaEventRecord(start));
-    cuda(cudaMemcpy(h_matrix, d_matrix, memsize, cudaMemcpyDeviceToHost)); //* copy matrix to host
+    if (usePitch){
+        cuda(cudaMemcpy2D(h_matrix, singleRow_memsize, d_matrix, pitch, singleRow_memsize, numVertices, cudaMemcpyDeviceToHost)); //* copy matrix to host
+    }
+    else{
+        cuda(cudaMemcpy(h_matrix, d_matrix, memsize, cudaMemcpyDeviceToHost)); //* copy matrix to host
+    }
     cuda(cudaEventRecord(stop));
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
 
-    outputs.push_back("CudaMemCpy to host: ");
+    outputs.push_back("CudaMemCpy to Host: ");
     times.push_back(elapsedTime);
+    outputs.push_back("CudaMemCpy to Host Bandwidth: ");
+    times.push_back(memsize / elapsedTime / 1.0e6);
 
     if(!debug){
-        std::string title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) + " nodes";
+        std::string title;
+        if(usePitch)
+            title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) + " nodes and pitch";
+        else
+            title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) + " nodes";
         printMetrics(title, outputs, times); //* print metrics
     }
 
@@ -103,7 +139,6 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool d
     cuda(cudaFree(d_matrix));
     return h_matrix;
 }
-
 
 short* blocked_parallel_FW(const short* g, int numVertices, int blockSize){
     short* d_matrix, *h_matrix;
@@ -134,6 +169,8 @@ short* blocked_parallel_FW(const short* g, int numVertices, int blockSize){
 
     outputs.push_back("CudaMemCpy to device: ");
     times.push_back(elapsedTime);
+    outputs.push_back("CudaMemCpy to device Bandwidth: ");
+    times.push_back(memsize / elapsedTime / 1.0e6);
 
     cuda(cudaEventRecord(start));
 
@@ -174,6 +211,8 @@ short* blocked_parallel_FW(const short* g, int numVertices, int blockSize){
 
     outputs.push_back("CudaMemCpy to host: ");
     times.push_back(elapsedTime);
+    outputs.push_back("CudaMemCpy to host Bandwidth: ");
+    times.push_back(memsize / elapsedTime / 1.0e6);
 
     std::string title =  "Starting BLOCKED FW KERNEL with " + std::to_string(numVertices) + " nodes";
     printMetrics(title, outputs, times); //* print metrics

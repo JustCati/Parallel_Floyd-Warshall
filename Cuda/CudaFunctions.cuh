@@ -17,6 +17,8 @@ inline void cudaCheck(cudaError_t err, const char *file, int line){
 }
 
 
-short* simple_parallel_FW(const short* g, int numVertices, int blockSize = DEFAULT_BLOCK_SIZE, bool debug = false);
+short* simple_parallel_FW(const short* g, int numVertices, bool usePitch = false, int blockSize = DEFAULT_BLOCK_SIZE, bool debug = false);
+
+short* simple_parallel_FW_vec(const short* g, int numVertices, int blockSize = DEFAULT_BLOCK_SIZE, bool debug = false);
 
 short* blocked_parallel_FW(const short* g, int numVertices, int blockSize = DEFAULT_BLOCK_SIZE);
