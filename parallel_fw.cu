@@ -19,11 +19,12 @@
     -a <algorithm>: Set algorithm to use (0: simple, 1: blocked)
 */
 int main(int argc, char **argv){
-    int perc = 50, blockSize = 0, algorithm = 0, kernelType = 0;
+    int perc = 50, blockSize = 0, algorithm = 0;
+    bool usePitch = false, vectorize = false;
     bool saveToCache = false, toVerify = false, printResults = false;
 
     if(argc < 2 || argc > 13)
-        err("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-v] [-pit] [-vec] [-verbose]");
+        err("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-vec] [-v] [-pit]  [-verbose]");
     
     for(int i = 1; i < argc; i++){
         if(strcmp(argv[i], "-p") == 0){
@@ -45,9 +46,9 @@ int main(int argc, char **argv){
         if(strcmp(argv[i], "-verbose") == 0)
             printResults = true;
         if(strcmp(argv[i], "-pit") == 0)
-            kernelType = 1;
+            usePitch = true;
         if(strcmp(argv[i], "-vec") == 0)
-            kernelType = 2;
+            vectorize = true;
     }
 
     short* graph = nullptr;
@@ -71,17 +72,7 @@ int main(int argc, char **argv){
             w_GPU = FloydWarshallCPU(graph, numVertices, numCol);
             break;
         case 2:
-            switch (kernelType){
-                case 1:
-                    w_GPU = simple_parallel_FW(graph, numVertices, true, blockSize);
-                    break;
-                case 2:
-                    w_GPU = simple_parallel_FW_vec(graph, numCol, blockSize);
-                    break;
-                default:
-                    w_GPU = simple_parallel_FW(graph, numCol, false, blockSize);
-                    break;
-            }
+            w_GPU = simple_parallel_FW(graph, numCol, blockSize, usePitch, vectorize);
             break;
         case 3:
             w_GPU = blocked_parallel_FW(graph, numCol, blockSize);
@@ -110,7 +101,7 @@ int main(int argc, char **argv){
             resultsCached = FloydWarshallCPU(graph, numVertices, numCol);
         else{
             cpuExec = false;
-            resultsCached = simple_parallel_FW(graph, numCol, false, DEFAULT_BLOCK_SIZE, true);
+            resultsCached = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, false, false, true);
         }
 
         if(saveToCache)
