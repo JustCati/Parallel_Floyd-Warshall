@@ -32,7 +32,87 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
     std::cout << "Total Kernel time: " << std::accumulate(times.begin(), times.end(), 0.0) / 1000 << " s" << std::endl;
 }
 
+short* simple_parallel_FW_vec(const short* g, int numVertices, int blockSize){
+    short* d_matrix, *h_matrix;
+    size_t memsize = numVertices * numVertices * sizeof(short);
 
+    float elapsedTime;
+    std::vector<float> times;
+    std::vector<std::string> outputs;
+
+    cudaEvent_t start, stop;
+    cuda(cudaEventCreate(&start));
+    cuda(cudaEventCreate(&stop));
+
+    cuda(cudaEventRecord(start));
+    cuda(cudaMalloc(&d_matrix, memsize)); //* allocate memory on device
+    cuda(cudaEventRecord(stop));
+    cuda(cudaEventSynchronize(stop));
+    cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
+
+    outputs.push_back("CudaMalloc: ");
+    times.push_back(elapsedTime);
+
+    cuda(cudaEventRecord(start));
+    cuda(cudaMemcpy(d_matrix, g, memsize, cudaMemcpyHostToDevice)); //* copy matrix to device
+    cuda(cudaEventRecord(stop));
+    cuda(cudaEventSynchronize(stop));
+    cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
+
+    outputs.push_back("CudaMemCpy to device: ");
+    times.push_back(elapsedTime);
+    outputs.push_back("CudaMemCpy to device Bandwidth: ");
+    times.push_back(memsize / elapsedTime / 1.0e6);
+
+    cuda(cudaEventRecord(start));
+
+    //* ---------------------- KERNEL ---------------------- *//
+    int numElem = numVertices >> 1;
+    dim3 dimBlock = dim3(blockSize, blockSize);
+    dim3 numBlock = dim3((numElem + dimBlock.x - 1) / dimBlock.x, (numElem + dimBlock.y - 1) / dimBlock.y);
+
+    std::cout << numBlock.x << " " << numBlock.y << std::endl;
+
+    for(int k = 0; k < numVertices; k++)
+        FW_simple_kernel_vectorized2<<<numBlock, dimBlock>>>((short2*)d_matrix, numVertices, k); //* call kernel
+    
+    //* ---------------------------------------------------- *//
+    
+    cuda(cudaEventRecord(stop));
+    cuda(cudaEventSynchronize(stop));
+    cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
+
+    outputs.push_back("Total kernel call: ");
+    times.push_back(elapsedTime);
+
+    cuda(cudaEventRecord(start));
+    cuda(cudaMallocHost(&h_matrix, memsize)); //* allocate memory on host
+    cuda(cudaEventRecord(stop));
+    cuda(cudaEventSynchronize(stop));
+    cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
+
+    outputs.push_back("CudaMallocHost: ");
+    times.push_back(elapsedTime);
+
+    cuda(cudaEventRecord(start));
+    cuda(cudaMemcpy(h_matrix, d_matrix, memsize, cudaMemcpyDeviceToHost)); //* copy matrix to host
+    cuda(cudaEventRecord(stop));
+    cuda(cudaEventSynchronize(stop));
+    cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
+
+    outputs.push_back("CudaMemCpy to host: ");
+    times.push_back(elapsedTime);
+    outputs.push_back("CudaMemCpy to host Bandwidth: ");
+    times.push_back(memsize / elapsedTime / 1.0e6);
+
+    std::string title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) + " nodes";
+    printMetrics(title, outputs, times); //* print metrics
+
+    cuda(cudaEventDestroy(start));
+    cuda(cudaEventDestroy(stop));
+    cuda(cudaFree(d_matrix));
+    return (short*)h_matrix;
+}
 
 short* simple_parallel_FW(const short* g, int numVertices, bool usePitch, int blockSize, bool debug){
     size_t pitch = 0;

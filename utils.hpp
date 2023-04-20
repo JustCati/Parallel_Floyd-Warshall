@@ -14,7 +14,7 @@ void printMatrix(const short* matrix, int numVertices, int numCol){
     for(int i = 0; i < numVertices; i++){
         for(int j = 0; j < numVertices; j++){
             if(matrix[i * numCol + j] == SHRT_MAX >> 1)
-                std::cout << "INF" << "\t";
+                std::cout << "-" << "\t";
             else
                 std::cout << matrix[i * numCol + j] << "\t";
         }
