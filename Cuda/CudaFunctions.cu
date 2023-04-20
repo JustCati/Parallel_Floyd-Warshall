@@ -71,10 +71,8 @@ short* simple_parallel_FW_vec(const short* g, int numVertices, int blockSize){
     dim3 dimBlock = dim3(blockSize, blockSize);
     dim3 numBlock = dim3((numElem + dimBlock.x - 1) / dimBlock.x, (numElem + dimBlock.y - 1) / dimBlock.y);
 
-    std::cout << numBlock.x << " " << numBlock.y << std::endl;
-
     for(int k = 0; k < numVertices; k++)
-        FW_simple_kernel_vectorized2<<<numBlock, dimBlock>>>((short2*)d_matrix, numVertices, k); //* call kernel
+        FW_simple_kernel_vectorized4<<<numBlock, dimBlock>>>((short4*)d_matrix, numVertices, k); //* call kernel
     
     //* ---------------------------------------------------- *//
     

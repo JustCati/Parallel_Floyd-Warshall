@@ -3,9 +3,38 @@
 #include <cuda_runtime.h>
 
 
-__host__ __device__
+__forceinline__ __host__ __device__
 short2 operator+(const short2& a, const short2& b) {
     return make_short2(a.x + b.x, a.y + b.y);
+}
+
+__forceinline__ __host__ __device__ 
+short4 operator+(const short4& a, const short4& b) {
+    return make_short4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+}
+
+__forceinline__ __host__ __device__
+short2 checkWeight(const short2& a, const short2& b) {
+    short2 ret = b;
+    if(a.x < b.x)
+        ret.x = a.x;
+    if(a.y < b.y)
+        ret.y = a.y;
+    return ret;
+}
+
+__forceinline__ __host__ __device__
+short4 checkWeight(const short4& a, const short4& b) {
+    short4 ret = b;
+    if(a.x < b.x)
+        ret.x = a.x;
+    if(a.y < b.y)
+        ret.y = a.y;
+    if(a.z < b.z)
+        ret.z = a.z;
+    if(a.w < b.w)
+        ret.w = a.w;
+    return ret;
 }
 
 
@@ -55,12 +84,37 @@ __global__ void FW_simple_kernel_vectorized2(short2* d_D, int n, int k){
         ik = make_short2(temp, temp);
 
         short2 res = ik + kj;
-        if(res.x < ij.x)
-            ij.x = res.x;
-        if(res.y < ij.y)
-            ij.y = res.y;
+        d_D[i * numElem + j] = checkWeight(res, ij);
+    }
+}
 
-        d_D[i * numElem + j] = ij;
+
+__global__ void FW_simple_kernel_vectorized4(short4* d_D, int n, int k){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i < n && j < (n >> 2)) {
+        short4 ij, ik, kj;
+        int numElem = n >> 2, temp;
+
+        ij = d_D[i * numElem + j];
+        kj = d_D[k * numElem + j];
+
+        int mask = ~((~0) << 2);
+        int lsb_2 = (k & mask);
+        if(lsb_2 == 0)
+            temp = d_D[i * numElem + (k >> 2)].x;
+        if(lsb_2 == 1)
+            temp = d_D[i * numElem + (k >> 2)].y;
+        if(lsb_2 == 2)
+            temp = d_D[i * numElem + (k >> 2)].z;
+        if(lsb_2 == 3)
+            temp = d_D[i * numElem + (k >> 2)].w;
+
+        ik = make_short4(temp, temp, temp, temp);
+
+        short4 res = ik + kj;
+        d_D[i * numElem + j] = checkWeight(res, ij);
     }
 }
 

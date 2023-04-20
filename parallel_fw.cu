@@ -93,9 +93,9 @@ int main(int argc, char **argv){
     //! ------------------ VERIFY --------------------
     if(toVerify){
         bool cpuExec = true;
+        short* resultsCached = nullptr;
         
         std::ifstream in;
-        short* resultsCached = nullptr;
         std::string graphFilename = "cachedResults/results_" + std::to_string(numVertices) + "_" + std::to_string(perc) + ".txt";
 
         in.open(graphFilename, std::ifstream::in);
