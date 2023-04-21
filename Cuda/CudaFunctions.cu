@@ -144,7 +144,7 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool u
 
     if(!debug){
         std::string title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) +\
-        " nodes" + (usePitch ? " with pitch, " : "") + (vectorize ? " with vectorization" : "");
+        " nodes" + (usePitch ? " with pitch," : "") + (vectorize ? " with vectorization" : "");
         printMetrics(title, outputs, times); //* print metrics
     }
 

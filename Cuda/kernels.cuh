@@ -10,15 +10,11 @@ short4 operator+(const short4& a, const short4& b) {
 
 __forceinline__ __host__ __device__
 short4 checkWeight(const short4& a, const short4& b) {
-    short4 ret = b;
-    if(a.x < b.x)
-        ret.x = a.x;
-    if(a.y < b.y)
-        ret.y = a.y;
-    if(a.z < b.z)
-        ret.z = a.z;
-    if(a.w < b.w)
-        ret.w = a.w;
+    short4 ret;
+    ret.x = (a.x < b.x) ? a.x : b.x;
+    ret.y = (a.y < b.y) ? a.y : b.y;
+    ret.z = (a.z < b.z) ? a.z : b.z;
+    ret.w = (a.w < b.w) ? a.w : b.w;
     return ret;
 }
 
@@ -67,9 +63,10 @@ __global__ void FW_simple_kernel_vectorized(short4 *d_D, int n, int k){
 
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
-#if 0
-        tempIk = *(((short*)(d_D + i * numElem + (k >> 2))) + (lsb_2 * sizeof(short)));
-#else
+
+#if 1 // "brutto ma veloce"
+        tempIk = *(((short*)(d_D + i * numElem + (k >> 2))) + lsb_2);
+#else // "pulito ma più lento"
         if(lsb_2 == 0)
             tempIk = d_D[i * numElem + (k >> 2)].x;
         if(lsb_2 == 1)
@@ -79,7 +76,6 @@ __global__ void FW_simple_kernel_vectorized(short4 *d_D, int n, int k){
         if(lsb_2 == 3)
             tempIk = d_D[i * numElem + (k >> 2)].w;
 #endif
-
 
         ik = make_short4(tempIk, tempIk, tempIk, tempIk);
 
@@ -104,9 +100,10 @@ __global__ void FW_simple_kernel_vectorized_pitch(short4* d_D, int pitch, int n,
 
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
-#if 0
-        tempIk = *((short*)d_D_Pitch_i + (k >> 2) + (lsb_2 * sizeof(short)));
-#else
+
+#if 1 // "brutto ma veloce"
+        tempIk = *(((short*)(d_D_Pitch_i + (k >> 2))) + lsb_2);
+#else // "pulito ma più lento"
         if(lsb_2 == 0)
             tempIk = d_D_Pitch_i[(k >> 2)].x;
         if(lsb_2 == 1)
@@ -116,7 +113,6 @@ __global__ void FW_simple_kernel_vectorized_pitch(short4* d_D, int pitch, int n,
         if(lsb_2 == 3)
             tempIk = d_D_Pitch_i[(k >> 2)].w;
 #endif
-
         ik = make_short4(tempIk, tempIk, tempIk, tempIk);
 
         short4 res = ik + kj;
