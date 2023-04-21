@@ -29,7 +29,7 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
     }
     
     std::cout << std::endl;
-    std::cout << "Total Kernel time: " << std::accumulate(times.begin(), times.end(), 0.0) / 1000 << " s" << std::endl;
+    std::cout << "Total Function time: " << std::accumulate(times.begin(), times.end(), 0.0) / 1000 << " s" << std::endl;
 }
 
 short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool usePitch, bool vectorize, bool debug){
