@@ -67,6 +67,9 @@ __global__ void FW_simple_kernel_vectorized(short4 *d_D, int n, int k){
 
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
+#if 0
+        tempIk = *(((short*)(d_D + i * numElem + (k >> 2))) + (lsb_2 * sizeof(short)));
+#else
         if(lsb_2 == 0)
             tempIk = d_D[i * numElem + (k >> 2)].x;
         if(lsb_2 == 1)
@@ -75,6 +78,8 @@ __global__ void FW_simple_kernel_vectorized(short4 *d_D, int n, int k){
             tempIk = d_D[i * numElem + (k >> 2)].z;
         if(lsb_2 == 3)
             tempIk = d_D[i * numElem + (k >> 2)].w;
+#endif
+
 
         ik = make_short4(tempIk, tempIk, tempIk, tempIk);
 
@@ -99,6 +104,9 @@ __global__ void FW_simple_kernel_vectorized_pitch(short4* d_D, int pitch, int n,
 
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
+#if 0
+        tempIk = *((short*)d_D_Pitch_i + (k >> 2) + (lsb_2 * sizeof(short)));
+#else
         if(lsb_2 == 0)
             tempIk = d_D_Pitch_i[(k >> 2)].x;
         if(lsb_2 == 1)
@@ -107,6 +115,7 @@ __global__ void FW_simple_kernel_vectorized_pitch(short4* d_D, int pitch, int n,
             tempIk = d_D_Pitch_i[(k >> 2)].z;
         if(lsb_2 == 3)
             tempIk = d_D_Pitch_i[(k >> 2)].w;
+#endif
 
         ik = make_short4(tempIk, tempIk, tempIk, tempIk);
 

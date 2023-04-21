@@ -35,8 +35,16 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
 short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool usePitch, bool vectorize, bool debug){
     size_t pitch = 0;
     short* d_matrix, *h_matrix;
-    size_t singleRow_memsize = numVertices * sizeof(short);
-    size_t memsize = numVertices * numVertices * sizeof(short);
+    size_t singleRow_memsize, memsize;
+
+    if (vectorize){
+        singleRow_memsize = (numVertices >> 2) * sizeof(short4);
+        memsize = (numVertices >> 2) * numVertices * sizeof(short4);
+    }
+    else{
+        singleRow_memsize = numVertices * sizeof(short);
+        memsize = numVertices * numVertices * sizeof(short);
+    }
 
     float elapsedTime;
     std::vector<float> times;
@@ -90,9 +98,8 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool u
                 FW_simple_kernel<<<numBlock, dimBlock>>>(d_matrix, numVertices, k); //* call kernel
     }
     else{ //* vectorize with short4 type (default)
-        int numElem = numVertices >> 2;     //TODO: FIX N > blockSize
         dim3 dimBlock = dim3(blockSize, blockSize);
-        dim3 numBlock = dim3((numElem + dimBlock.x - 1) / dimBlock.x, (numElem + dimBlock.y - 1) / dimBlock.y);
+        dim3 numBlock = dim3((numVertices + dimBlock.x - 1) / dimBlock.x, (numVertices + dimBlock.y - 1) / dimBlock.y);
 
         if(usePitch)
             for(int k = 0; k < numVertices; k++)
@@ -124,9 +131,8 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool u
     if (usePitch){
         cuda(cudaMemcpy2D(h_matrix, singleRow_memsize, d_matrix, pitch, singleRow_memsize, numVertices, cudaMemcpyDeviceToHost)); //* copy matrix to host
     }
-    else{
+    else
         cuda(cudaMemcpy(h_matrix, d_matrix, memsize, cudaMemcpyDeviceToHost)); //* copy matrix to host
-    }
     cuda(cudaEventRecord(stop));
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
@@ -137,11 +143,8 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool u
     times.push_back(memsize / elapsedTime / 1.0e6);
 
     if(!debug){
-        std::string title;
-        if(usePitch)
-            title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) + " nodes and pitch";
-        else
-            title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) + " nodes";
+        std::string title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) +\
+        " nodes" + (usePitch ? " with pitch, " : "") + (vectorize ? " with vectorization" : "");
         printMetrics(title, outputs, times); //* print metrics
     }
 

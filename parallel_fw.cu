@@ -11,8 +11,8 @@
 /*
     -v: verify
     -pit: use pitch
-    -vec: vectorized if possible
     -verbose: print results matrix
+    -vec: vectorized if possible with short4
     -c: if necessary save results to file (cache)
     -b <block size>: Set block size for GPU execution on Blocked Floyd-Warshall
     -p <percentage>: Set percentage for Erdos-Renyi graph generation
@@ -53,6 +53,9 @@ int main(int argc, char **argv){
 
     short* graph = nullptr;
     int numVertices = atoi(argv[1]), numCol = numVertices;
+
+    if(vectorize && (numVertices & 3))
+        err("Il numero di vertici deve essere multiplo di 4 per poter utilizzare la versione vectorized");
 
     if(algorithm == 3 && blockSize != 0){
         int remainder = numVertices - blockSize * (numVertices / blockSize);
