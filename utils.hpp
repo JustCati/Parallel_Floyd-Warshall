@@ -1,6 +1,5 @@
 #pragma once
 #include <iostream>
-#include <fstream>
 #include <limits.h>
 
 
@@ -26,15 +25,4 @@ void verify(const short* w_CPU, int numColCPU, const short* w_GPU, int numColGPU
                 std::cerr << "Errore all'indice '" << i * numColCPU + j << "' : " << \
                 w_CPU[i * numColCPU + j] << " != " << w_GPU[i * numColGPU + j] << std::endl;
     std::cout << "Verifica completata!" << std::endl;
-}
-
-
-void writeToFile(const short* matrix, int numVertices, int numCol, std::string filename){
-    std::ofstream out(filename, std::ofstream::binary);
-    for(int i = 0; i < numVertices; i++){
-        for(int j = 0; j < numVertices; j++)
-            out << matrix[i * numCol + j] << " ";
-        out << std::endl;
-    }
-    out.close();
 }

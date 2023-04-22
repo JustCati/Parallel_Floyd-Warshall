@@ -1,6 +1,5 @@
 #include <iostream>
 #include <unistd.h>
-#include <fstream>
 #include <map>
 
 #include "utils.hpp"
@@ -15,9 +14,9 @@
     -c: check / verify results
     -V: (verbose) print results matrix
     -v: vectorized if possible with short4
-    -b <block size>: Set block size for GPU execution on Blocked Floyd-Warshall
+    -b <block size>: Set block size for GPU
     -p <percentage>: Set percentage for Erdos-Renyi graph generation
-    -a <algorithm>: Set algorithm to use (0: simple, 1: blocked)
+    -a <algorithm>: Set algorithm to use (1: cpu, 1: simple, 2: blocked)
 */
 int main(int argc, char **argv){
     bool usePitch = false, vectorize = false;
@@ -105,6 +104,7 @@ int main(int argc, char **argv){
         bool cpuExec = true;
         short *resultsForVerify = nullptr;
         
+        // If the number of vertices is too high, the CPU version will be too slow
         if (numVertices < CPU_VERT_LIMIT)
             resultsForVerify = FloydWarshallCPU(graph, numVertices, numCol);
         else{
