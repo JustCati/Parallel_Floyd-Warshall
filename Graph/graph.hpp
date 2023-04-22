@@ -1,7 +1,7 @@
 #pragma once
 #include <stdio.h>
 
-#define DEFAULT_BLOCK_SIZE 32
+#define DEFAULT_BLOCK_SIZE 16
 
 
 short* graphInit(int numVertices, int p, int seed = 1234);

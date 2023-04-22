@@ -4,7 +4,7 @@
 
 #include "../Graph/graph.hpp"
 
-#define DEFAULT_BLOCK_SIZE 32
+#define DEFAULT_BLOCK_SIZE 16
 
 
 #define cuda(fun) { cudaCheck(fun, __FILE__, __LINE__); }

@@ -9,15 +9,12 @@
 #include "CudaFunctions.cuh"
 #include "../Graph/graph.hpp"
 
-#define DEFAULT_BLOCK_SIZE 32
-
 
 
 void printMetrics(std::string title, std::vector<std::string> outputs, std::vector<float> times){
-    if (outputs.size() != times.size()){
-        std::cout << "ERROR: outputs and times vectors are not the same size" << std::endl;
-        return;
-    }
+    if (outputs.size() != times.size())
+        throw std::runtime_error("Outputs e times vectors sono di dimensioni diverse");
+    
     std::cout << title << std::endl << std::endl;
     for(int i = 0; i < outputs.size(); i++){
         std::cout << outputs[i] << times[i];
@@ -85,11 +82,10 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool u
     cuda(cudaEventRecord(start));
 
     //* ---------------------- KERNEL ---------------------- *//
-
+    dim3 dimBlock = dim3(blockSize, blockSize);
+    dim3 numBlock = dim3((numVertices + dimBlock.x - 1) / dimBlock.x, (numVertices + dimBlock.y - 1) / dimBlock.y);
+    
     if(!vectorize){
-        dim3 dimBlock = dim3(blockSize, blockSize);
-        dim3 numBlock = dim3((numVertices + dimBlock.x - 1) / dimBlock.x, (numVertices + dimBlock.y - 1) / dimBlock.y);
-
         if(usePitch)
             for(int k = 0; k < numVertices; k++)
                 FW_simple_kernel_pitch<<<numBlock, dimBlock>>>(d_matrix, pitch, numVertices, k); //* call kernel
@@ -98,9 +94,6 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool u
                 FW_simple_kernel<<<numBlock, dimBlock>>>(d_matrix, numVertices, k); //* call kernel
     }
     else{ //* vectorize with short4 type (default)
-        dim3 dimBlock = dim3(blockSize, blockSize);
-        dim3 numBlock = dim3((numVertices + dimBlock.x - 1) / dimBlock.x, (numVertices + dimBlock.y - 1) / dimBlock.y);
-
         if(usePitch)
             for(int k = 0; k < numVertices; k++)
                 FW_simple_kernel_vectorized_pitch<<<numBlock, dimBlock>>>((short4*)d_matrix, pitch, numVertices, k); //* call kernel
@@ -108,7 +101,7 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool u
             for(int k = 0; k < numVertices; k++)
                 FW_simple_kernel_vectorized<<<numBlock, dimBlock>>>((short4*)d_matrix, numVertices, k); //* call kernel
     }
-    
+
     //* ---------------------------------------------------- *//
     
     cuda(cudaEventRecord(stop));
@@ -156,7 +149,7 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool u
 
 short* blocked_parallel_FW(const short* g, int numVertices, int blockSize){
     short* d_matrix, *h_matrix;
-    size_t memsize = numVertices * numVertices * sizeof(short);
+    const size_t memsize = numVertices * numVertices * sizeof(short);
 
     float elapsedTime;
     std::vector<float> times;
@@ -190,9 +183,10 @@ short* blocked_parallel_FW(const short* g, int numVertices, int blockSize){
 
     //* ---------------------- KERNEL ---------------------- *//
     const int numBlocks = (numVertices + blockSize - 1) / blockSize;
+
     dim3 dimBlock = dim3(blockSize, blockSize);
     dim3 dimBlock_phase3 = dim3(numBlocks, numBlocks);
-    size_t sharedMemSize = blockSize * blockSize * sizeof(int);
+    const size_t sharedMemSize = blockSize * blockSize * sizeof(short);
 
     for(int k = 0; k < numBlocks; k++){
         blocked_FW_phase1<<<1, dimBlock, sharedMemSize>>>(d_matrix, numVertices, k, blockSize);

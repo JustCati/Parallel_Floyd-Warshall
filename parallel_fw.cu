@@ -1,17 +1,18 @@
 #include <iostream>
-#include <string>
 #include <unistd.h>
 #include <fstream>
+#include <map>
 
 #include "utils.hpp"
 #include "Graph/graph.hpp"
 #include "Cuda/CudaFunctions.cuh"
 
 #define CPU_VERT_LIMIT 4096
+#define DEFAULT_BLOCK_SIZE 16
 
 /*
     -P: use pitch
-    -c: check / verify
+    -c: check / verify results
     -V: (verbose) print results matrix
     -v: vectorized if possible with short4
     -b <block size>: Set block size for GPU execution on Blocked Floyd-Warshall
@@ -23,28 +24,33 @@ int main(int argc, char **argv){
     bool usePitch = false, vectorize = false;
     bool toVerify = false, printResults = false;
 
-    if(argc < 2 || argc > 13)
-        err("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] [-P]");
+    if(argc < 2 || argc > 12)
+        throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] [-P]");
         
     short* graph = nullptr;
-    int numVertices = atoi(argv[argc - 1]), numCol = numVertices;
+    int numVertices = atoi(argv[argc - 1]);
 
     int opt;
     extern char *optarg;
+    std::map<short, short> sqrts = {{1024, 32}, {256, 16}, {64, 8}, {16, 4}, {4, 2}};
     while((opt = getopt(argc, argv, "p:b:a:cvVP")) != -1){
         switch(opt){
             case 'p':
                 perc = atoi(optarg);
                 if(perc <= 0 || perc >= 100)
-                    err("Inserire percentuale compreso tra 0 e 100 (estremi esclusi)");
+                    throw std::invalid_argument("Inserire percentuale compreso tra 0 e 100 (estremi esclusi)");
                 break;
             case 'b':
                 blockSize = atoi(optarg);
+                if(sqrts.find(blockSize) == sqrts.end())
+                    throw std::invalid_argument("Invalid block size for blocked parallel FW algorithm");
+
+                blockSize = sqrts[blockSize];
                 break;
             case 'a':
                 algorithm = atoi(optarg);
                 if(algorithm == 0 || (algorithm != 1 && algorithm != 2 && algorithm != 3))
-                    err("Inserire 1 per FW su CPU, 2 per FW parallelizzato su global memory, 3 per FW parallelizzato su shared memory (blocked)");
+                    throw std::invalid_argument("Inserire 1 per FW su CPU, 2 per FW parallelizzato su global memory, 3 per FW parallelizzato su shared memory (blocked)");
                 break;
             case 'c':
                 toVerify = true;
@@ -59,14 +65,16 @@ int main(int argc, char **argv){
                 printResults = true;
                 break;
             default:
-                err("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] [-P]");
+                throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] [-P]");
         }
     }
 
     if(vectorize && (numVertices & 3))
-        err("Il numero di vertici deve essere multiplo di 4 per poter utilizzare la versione vectorized");
+        throw std::invalid_argument("Il numero di vertici deve essere multiplo di 4 per poter utilizzare la versione vectorized");
 
-    if(algorithm == 3 && blockSize != 0){
+    int numCol = numVertices;
+    if(algorithm == 3){
+        blockSize = (blockSize == 0) ? DEFAULT_BLOCK_SIZE : blockSize;
         int remainder = numVertices - blockSize * (numVertices / blockSize);
         if (remainder)
             numCol = numVertices + blockSize - remainder;
@@ -96,21 +104,21 @@ int main(int argc, char **argv){
     //! ------------------ VERIFY --------------------
     if(toVerify){
         bool cpuExec = true;
-        short *resultsCached = nullptr;
+        short *resultsForVerify = nullptr;
         
         if (numVertices < CPU_VERT_LIMIT)
-            resultsCached = FloydWarshallCPU(graph, numVertices, numCol);
+            resultsForVerify = FloydWarshallCPU(graph, numVertices, numCol);
         else{
             cpuExec = false;
-            resultsCached = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, false, false, true);
+            resultsForVerify = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, false, false, true);
         }
 
-        verify(resultsCached, numVertices, w_GPU, numCol);
+        verify(resultsForVerify, numVertices, w_GPU, numCol);
 
         if(cpuExec)
-            delete[] resultsCached;
+            delete[] resultsForVerify;
         else
-            cuda(cudaFreeHost(resultsCached));
+            cuda(cudaFreeHost(resultsForVerify));
     }
 
     if (printResults)

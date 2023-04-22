@@ -4,10 +4,6 @@
 #include <limits.h>
 
 
-void err(const char *msg){
-    std::cout << msg << std::endl;
-    exit(1);
-}
 
 void printMatrix(const short* matrix, int numVertices, int numCol){
     std::cout << std::endl;

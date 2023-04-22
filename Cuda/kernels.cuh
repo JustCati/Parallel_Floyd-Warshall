@@ -64,7 +64,7 @@ __global__ void FW_simple_kernel_vectorized(short4 *d_D, int n, int k){
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
 
-#if 1 // "brutto ma veloce"
+#if 1 // "brutto ma veloce" (~0.5s più veloce con 2^13)
         tempIk = *(((short*)(d_D + i * numElem + (k >> 2))) + lsb_2);
 #else // "pulito ma più lento"
         if(lsb_2 == 0)
@@ -101,7 +101,7 @@ __global__ void FW_simple_kernel_vectorized_pitch(short4* d_D, int pitch, int n,
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
 
-#if 1 // "brutto ma veloce"
+#if 1 // "brutto ma veloce" (~0.5s più veloce con 2^13)
         tempIk = *(((short*)(d_D_Pitch_i + (k >> 2))) + lsb_2);
 #else // "pulito ma più lento"
         if(lsb_2 == 0)
@@ -204,7 +204,7 @@ __global__ void blocked_FW_phase2(short* d_D, int n, int k, const int blockSize)
 }
 
 // __global__ void blocked_FW_phase2_pitch(short* d_D, int pitch, int k, const int blockSize){
-//     // Seleziona l'indice (diagonale) da cui poi andremo a osservare
+//    // Seleziona l'indice (diagonale) da cui poi andremo a osservare
 //     // i blocchi nella stessa riga e colonna del blocco principale
 //     int x = blockIdx.x;
 
