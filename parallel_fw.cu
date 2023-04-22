@@ -20,15 +20,15 @@
     -a <algorithm>: Set algorithm to use (0: simple, 1: blocked)
 */
 int main(int argc, char **argv){
-    int perc = 50, blockSize = 0, algorithm = 0;
     bool usePitch = false, vectorize = false;
     bool toVerify = false, printResults = false;
+    int perc = 50, blockSize = DEFAULT_BLOCK_SIZE, algorithm = 0;
 
     if(argc < 2 || argc > 12)
         throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] [-P]");
         
     short* graph = nullptr;
-    int numVertices = atoi(argv[argc - 1]);
+    const int numVertices = atoi(argv[argc - 1]);
 
     int opt;
     extern char *optarg;
@@ -74,8 +74,7 @@ int main(int argc, char **argv){
 
     int numCol = numVertices;
     if(algorithm == 3){
-        blockSize = (blockSize == 0) ? DEFAULT_BLOCK_SIZE : blockSize;
-        int remainder = numVertices - blockSize * (numVertices / blockSize);
+        const int remainder = numVertices - blockSize * (numVertices / blockSize);
         if (remainder)
             numCol = numVertices + blockSize - remainder;
 
