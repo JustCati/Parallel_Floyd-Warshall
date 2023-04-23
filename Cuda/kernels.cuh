@@ -2,6 +2,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#define ll long long
+
 
 __forceinline__ __host__ __device__ 
 short4 operator+(const short4& a, const short4& b) {
@@ -19,7 +21,7 @@ short4 checkWeight(const short4& a, const short4& b) {
 }
 
 
-__global__ void FW_simple_kernel(short* d_D, int n, int k) {
+__global__ void FW_simple_kernel(short* d_D, ll n, int k) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
   
@@ -33,7 +35,7 @@ __global__ void FW_simple_kernel(short* d_D, int n, int k) {
     }
 }
 
-__global__ void FW_simple_kernel_pitch(short* d_D, int pitch, int n, int k) {
+__global__ void FW_simple_kernel_pitch(short* d_D, ll pitch, ll n, int k) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -50,13 +52,14 @@ __global__ void FW_simple_kernel_pitch(short* d_D, int pitch, int n, int k) {
     }
 }
 
-__global__ void FW_simple_kernel_vectorized(short4 *d_D, int n, int k){
+__global__ void FW_simple_kernel_vectorized(short4 *d_D, ll n, int k){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i < n && j < (n >> 2)) {
+        short tempIk;
         short4 ij, ik, kj;
-        int numElem = n >> 2, tempIk;
+        ll numElem = n >> 2;
 
         ij = d_D[i * numElem + j];
         kj = d_D[k * numElem + j];
@@ -84,12 +87,12 @@ __global__ void FW_simple_kernel_vectorized(short4 *d_D, int n, int k){
     }
 }
 
-__global__ void FW_simple_kernel_vectorized_pitch(short4* d_D, int pitch, int n, int k){
+__global__ void FW_simple_kernel_vectorized_pitch(short4* d_D, ll pitch, ll n, int k){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i < n && j < (n >> 2)) {
-        int tempIk;
+        short tempIk;
         short4 ij, ik, kj;
 
         short4 *d_D_Pitch_i = (short4*)((char*)d_D + i * pitch);
@@ -132,7 +135,7 @@ __device__ void blockedUpdateFW(short* C, short* A, short* B, int i, int j, cons
 }
 
 // Aggiorna il blocco principale (k)
-__global__ void blocked_FW_phase1(short* d_D, int n, int k, const int blockSize){
+__global__ void blocked_FW_phase1(short* d_D, ll n, int k, const int blockSize){
     int i = threadIdx.y;
     int j = threadIdx.x;
 
@@ -166,7 +169,7 @@ __global__ void blocked_FW_phase1(short* d_D, int n, int k, const int blockSize)
 // }
 
 // Aggiorna i blocchi nella stessa riga e colonna del blocco principale (k)
-__global__ void blocked_FW_phase2(short* d_D, int n, int k, const int blockSize){
+__global__ void blocked_FW_phase2(short* d_D, ll n, int k, const int blockSize){
     // Seleziona l'indice (diagonale) da cui poi andremo a osservare
     // i blocchi nella stessa riga e colonna del blocco principale
     int x = blockIdx.x;
@@ -248,7 +251,7 @@ __global__ void blocked_FW_phase2(short* d_D, int n, int k, const int blockSize)
 // }
 
 // Aggiorna i blocchi restanti
-__global__ void blocked_FW_phase3(short* d_D, int n, int k, const int blockSize){
+__global__ void blocked_FW_phase3(short* d_D, ll n, int k, const int blockSize){
     int x = blockIdx.y;
     int y = blockIdx.x;
 

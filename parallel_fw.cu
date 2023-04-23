@@ -8,6 +8,7 @@
 
 #define CPU_VERT_LIMIT 4096
 #define DEFAULT_BLOCK_SIZE 16
+#define ll long long
 
 /*
     -P: use pitch
@@ -27,7 +28,7 @@ int main(int argc, char **argv){
         throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] [-P]");
         
     short* graph = nullptr;
-    const int numVertices = atoi(argv[argc - 1]);
+    const ll numVertices = atoll(argv[argc - 1]);
 
     int opt;
     extern char *optarg;
@@ -71,7 +72,7 @@ int main(int argc, char **argv){
     if(vectorize && (numVertices & 3))
         throw std::invalid_argument("Il numero di vertici deve essere multiplo di 4 per poter utilizzare la versione vectorized");
 
-    int numCol = numVertices;
+    ll numCol = numVertices;
     if(algorithm == 3){
         const int remainder = numVertices - blockSize * (numVertices / blockSize);
         if (remainder)
@@ -109,7 +110,7 @@ int main(int argc, char **argv){
             resultsForVerify = FloydWarshallCPU(graph, numVertices, numCol);
         else{
             cpuExec = false;
-            resultsForVerify = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, false, false, true);
+            resultsForVerify = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, false, true, true);
         }
 
         verify(resultsForVerify, numVertices, w_GPU, numCol);

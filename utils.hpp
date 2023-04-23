@@ -2,9 +2,9 @@
 #include <iostream>
 #include <limits.h>
 
+#define ll long long
 
-
-void printMatrix(const short* matrix, int numVertices, int numCol){
+void printMatrix(const short* matrix, ll numVertices, ll numCol){
     std::cout << std::endl;
     for(int i = 0; i < numVertices; i++){
         for(int j = 0; j < numVertices; j++){
@@ -17,7 +17,7 @@ void printMatrix(const short* matrix, int numVertices, int numCol){
     }
 }
 
-void verify(const short* w_CPU, int numColCPU, const short* w_GPU, int numColGPU){
+void verify(const short* w_CPU, ll numColCPU, const short* w_GPU, ll numColGPU){
     std::cout << std::endl <<  "Verifica..." << std::endl;
     for(int i = 0; i < numColCPU; i++)
         for(int j = 0; j < numColCPU; j++)

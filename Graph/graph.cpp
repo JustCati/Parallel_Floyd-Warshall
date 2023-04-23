@@ -2,23 +2,24 @@
 #include <limits.h>
 
 #include "graph.hpp"
-
+#define ll long long
 
 short* graphInit(int numVertices, int p, int seed){
-    short* g = new short[numVertices * numVertices];
+    ll numCol = numVertices;
+    short* g = new short[numCol * numCol];
 
     srand(seed);
-    for(int i = 0; i < numVertices; i++){
-        for(int j = 0; j < numVertices; j++){
+    for(int i = 0; i < numCol; i++){
+        for(int j = 0; j < numCol; j++){
             if(i == j){
-                g[i * numVertices + j] = 0;
+                g[i * numCol + j] = 0;
                 continue;
             }
             short perc = rand() / (RAND_MAX / 100) + 1;
             if(perc >= p)
-                g[i * numVertices + j] = rand() / (RAND_MAX >> 4) + 1;
+                g[i * numCol + j] = rand() / (RAND_MAX >> 4) + 1;
             else
-                g[i * numVertices + j] = SHRT_MAX >> 1;
+                g[i * numCol + j] = SHRT_MAX >> 1;
         }
     }
     return g;
@@ -26,13 +27,14 @@ short* graphInit(int numVertices, int p, int seed){
 
 
 short* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
-    int numCol;
+    ll numCol;
     int remainder = numVertices - blockSize * (numVertices / blockSize);
 
     if (remainder != 0)
         numCol = numVertices + blockSize - remainder;
     else 
         numCol = numVertices;
+    
     short* g = new short[numCol * numCol];
 
     srand(seed);
@@ -57,8 +59,8 @@ short* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
 }
 
 
-short* FloydWarshallCPU(const short* g, int numVertices, int numCol){
-    short* W = new short[numVertices * numVertices];
+short* FloydWarshallCPU(const short* g, ll numVertices, ll numCol){
+    short* W = new short[(ll)numVertices * (ll)numVertices];
 
     for(int i = 0; i < numVertices; i++)
         for(int j = 0; j < numVertices; j++)

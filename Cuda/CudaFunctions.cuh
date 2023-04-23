@@ -5,6 +5,7 @@
 #include "../Graph/graph.hpp"
 
 #define DEFAULT_BLOCK_SIZE 16
+#define ll long long
 
 
 #define cuda(fun) { cudaCheck(fun, __FILE__, __LINE__); }
@@ -17,6 +18,6 @@ inline void cudaCheck(cudaError_t err, const char *file, int line){
 }
 
 
-short* simple_parallel_FW(const short* g, int numVertices, int blockSize = DEFAULT_BLOCK_SIZE, bool usePitch = false, bool vectorize = false, bool debug = false);
+short* simple_parallel_FW(const short* g, ll numVertices, int blockSize = DEFAULT_BLOCK_SIZE, bool usePitch = false, bool vectorize = false, bool debug = false);
 
-short* blocked_parallel_FW(const short* g, int numVertices, int blockSize = DEFAULT_BLOCK_SIZE);
+short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize = DEFAULT_BLOCK_SIZE);

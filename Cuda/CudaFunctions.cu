@@ -9,6 +9,7 @@
 #include "CudaFunctions.cuh"
 #include "../Graph/graph.hpp"
 
+#define ll long long
 
 
 void printMetrics(std::string title, std::vector<std::string> outputs, std::vector<float> times){
@@ -29,7 +30,7 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
     std::cout << "Total Function time: " << std::accumulate(times.begin(), times.end(), 0.0) / 1000 << " s" << std::endl;
 }
 
-short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool usePitch, bool vectorize, bool debug){
+short* simple_parallel_FW(const short* g, ll numVertices, int blockSize, bool usePitch, bool vectorize, bool debug){
     size_t pitch = 0;
     short* d_matrix, *h_matrix;
     size_t singleRow_memsize, memsize;
@@ -147,7 +148,7 @@ short* simple_parallel_FW(const short* g, int numVertices, int blockSize, bool u
     return h_matrix;
 }
 
-short* blocked_parallel_FW(const short* g, int numVertices, int blockSize){
+short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize){
     short* d_matrix, *h_matrix;
     const size_t memsize = numVertices * numVertices * sizeof(short);
 
