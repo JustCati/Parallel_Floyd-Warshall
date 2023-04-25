@@ -180,11 +180,13 @@ __global__ void blocked_FW_phase2(short* d_D, ll n, int k, const int blockSize){
     if (x == k)
         return;
 
-    // Uno per il blocco da modificare e l'altro per il blocco di dipendenza
+    // A = blocco temporaneo da modificare usando B
+    // B = blocco principale (k) da cui dipende A
     extern __shared__ short lmem[];
     short* lmem_A = (short*)lmem;
     short* lmem_B = (short*)(&lmem_A[blockSize * blockSize]);
 
+    // Fase 2.1: carica in A il blocco nella stessa colonna di B (la riga (in blocchi) è indicizzata da x)
     lmem_A[i * blockSize + j] = d_D[(x * blockSize * n) + (k * blockSize) + (i * n + j)];
     lmem_B[i * blockSize + j] = d_D[(k * blockSize * n) + (k * blockSize) + (i * n + j)];
     __syncthreads();
@@ -192,9 +194,9 @@ __global__ void blocked_FW_phase2(short* d_D, ll n, int k, const int blockSize){
     blockedUpdateFW(lmem_A, lmem_A, lmem_B, i, j, blockSize);
     __syncthreads();
 
-    // Aggiorno la matrice con le nuove dipendenze 
     d_D[(x * blockSize * n) + (k * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 
+    // Fase 2.2: carica in A il blocco nella stessa riga di B (la colonna (in blocchi) è indicizzata da x)
     lmem_A[i * blockSize + j] = d_D[(k * blockSize * n) + (x * blockSize) + (i * n + j)];
     lmem_B[i * blockSize + j] = d_D[(k * blockSize * n) + (k * blockSize) + (i * n + j)];
     __syncthreads();
@@ -202,13 +204,10 @@ __global__ void blocked_FW_phase2(short* d_D, ll n, int k, const int blockSize){
     blockedUpdateFW(lmem_A, lmem_B, lmem_A, i, j, blockSize);
     __syncthreads();
 
-    // Aggiorno la matrice con le nuove dipendenze
     d_D[(k * blockSize * n) + (x * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 }
 
 __global__ void blocked_FW_phase2_pitch(short* d_D, int pitch, int k, const int blockSize){
-   // Seleziona l'indice (diagonale) da cui poi andremo a osservare
-    // i blocchi nella stessa riga e colonna del blocco principale
     int x = blockIdx.x;
 
     int i = threadIdx.y;
@@ -217,37 +216,33 @@ __global__ void blocked_FW_phase2_pitch(short* d_D, int pitch, int k, const int 
     if (x == k)
         return;
 
-    // Uno per il blocco da modificare e l'altro per il blocco di dipendenza
     extern __shared__ short lmem[];
     short* lmem_A = (short*)lmem;
     short* lmem_B = (short*)(&lmem_A[blockSize * blockSize]);
 
-    
-    // TODO: CHECK IF COLUMN OR ROW AND RENAME
-    short* d_D_Pitch_i = (short*)((char*)d_D + (x * blockSize * pitch) + (k * blockSize) + (i * pitch));
-    short* d_D_Pitch_k = (short*)((char*)d_D + (k * blockSize * pitch) + (k * blockSize) + (i * pitch));
-    short* d_D_Pitch_x = (short*)((char*)d_D + (k * blockSize * pitch) + (x * blockSize) + (i * pitch));
+
+    short* d_D_Pitch_col = (short*)((char*)d_D + (x * blockSize * pitch) + (k * blockSize) + (i * pitch));
+    short* d_D_Pitch_main = (short*)((char*)d_D + (k * blockSize * pitch) + (k * blockSize) + (i * pitch));
+    short* d_D_Pitch_row = (short*)((char*)d_D + (k * blockSize * pitch) + (x * blockSize) + (i * pitch));
 
 
-    lmem_A[i * blockSize + j] = d_D_Pitch_i[j];
-    lmem_B[i * blockSize + j] = d_D_Pitch_k[j];
+    lmem_A[i * blockSize + j] = d_D_Pitch_col[j];
+    lmem_B[i * blockSize + j] = d_D_Pitch_main[j];
     __syncthreads();
 
     blockedUpdateFW(lmem_A, lmem_A, lmem_B, i, j, blockSize);
     __syncthreads();
 
-    // Aggiorno la matrice con le nuove dipendenze 
-    d_D_Pitch_i[j] = lmem_A[i * blockSize + j];
+    d_D_Pitch_col[j] = lmem_A[i * blockSize + j];
 
-    lmem_A[i * blockSize + j] = d_D_Pitch_x[j];
-    lmem_B[i * blockSize + j] = d_D_Pitch_k[j];
+    lmem_A[i * blockSize + j] = d_D_Pitch_row[j];
+    lmem_B[i * blockSize + j] = d_D_Pitch_main[j];
     __syncthreads();
 
     blockedUpdateFW(lmem_A, lmem_B, lmem_A, i, j, blockSize);
     __syncthreads();
 
-    // Aggiorno la matrice con le nuove dipendenze
-    d_D_Pitch_x[j] = lmem_A[i * blockSize + j];
+    d_D_Pitch_row[j] = lmem_A[i * blockSize + j];
 }
 
 // Aggiorna i blocchi restanti
