@@ -151,22 +151,22 @@ __global__ void blocked_FW_phase1(short* d_D, ll n, int k, const int blockSize){
     d_D[(k * blockSize * n) + (k * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 }
 
-// __global__ void blocked_FW_phase1_pitch(short* d_D, int pitch, int k, const int blockSize){
-//     int i = threadIdx.y;
-//     int j = threadIdx.x;
+__global__ void blocked_FW_phase1_pitch(short* d_D, int pitch, int k, const int blockSize){
+    int i = threadIdx.y;
+    int j = threadIdx.x;
 
-//     extern __shared__ short lmem[];
-//     short* lmem_A = (short*)lmem;
-//     short* d_D_Pitch_i = (short*)((char*)d_D + (k * blockSize * pitch) + (k * blockSize) + (i * pitch));
+    extern __shared__ short lmem[];
+    short* lmem_A = (short*)lmem;
+    short* d_D_Pitch_i = (short*)((char*)d_D + (k * blockSize * pitch) + (k * blockSize) + (i * pitch));
 
-//     lmem_A[i * blockSize + j] = d_D_Pitch_i[j];
-//     __syncthreads();
+    lmem_A[i * blockSize + j] = d_D_Pitch_i[j];
+    __syncthreads();
 
-//     blockedUpdateFW(lmem_A, lmem_A, lmem_A, i, j, blockSize);
-//     __syncthreads();
+    blockedUpdateFW(lmem_A, lmem_A, lmem_A, i, j, blockSize);
+    __syncthreads();
 
-//     d_D[j] = lmem_A[i * blockSize + j];
-// }
+    d_D_Pitch_i[j] = lmem_A[i * blockSize + j];
+}
 
 // Aggiorna i blocchi nella stessa riga e colonna del blocco principale (k)
 __global__ void blocked_FW_phase2(short* d_D, ll n, int k, const int blockSize){
@@ -206,49 +206,49 @@ __global__ void blocked_FW_phase2(short* d_D, ll n, int k, const int blockSize){
     d_D[(k * blockSize * n) + (x * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 }
 
-// __global__ void blocked_FW_phase2_pitch(short* d_D, int pitch, int k, const int blockSize){
-//    // Seleziona l'indice (diagonale) da cui poi andremo a osservare
-//     // i blocchi nella stessa riga e colonna del blocco principale
-//     int x = blockIdx.x;
+__global__ void blocked_FW_phase2_pitch(short* d_D, int pitch, int k, const int blockSize){
+   // Seleziona l'indice (diagonale) da cui poi andremo a osservare
+    // i blocchi nella stessa riga e colonna del blocco principale
+    int x = blockIdx.x;
 
-//     int i = threadIdx.y;
-//     int j = threadIdx.x;
+    int i = threadIdx.y;
+    int j = threadIdx.x;
 
-//     if (x == k)
-//         return;
+    if (x == k)
+        return;
 
-//     // Uno per il blocco da modificare e l'altro per il blocco di dipendenza
-//     extern __shared__ short lmem[];
-//     short* lmem_A = (short*)lmem;
-//     short* lmem_B = (short*)(&lmem_A[blockSize * blockSize]);
+    // Uno per il blocco da modificare e l'altro per il blocco di dipendenza
+    extern __shared__ short lmem[];
+    short* lmem_A = (short*)lmem;
+    short* lmem_B = (short*)(&lmem_A[blockSize * blockSize]);
 
     
-//     // TODO: CHECK IF COLUMN OR ROW AND RENAME
-//     short* d_D_Pitch_i = (short*)((char*)d_D + (x * blockSize * pitch) + (k * blockSize) + (i * pitch));
-//     short* d_D_Pitch_k = (short*)((char*)d_D + (k * blockSize * pitch) + (k * blockSize) + (i * pitch));
-//     short* d_D_Pitch_x = (short*)((char*)d_D + (k * blockSize * pitch) + (x * blockSize) + (i * pitch));
+    // TODO: CHECK IF COLUMN OR ROW AND RENAME
+    short* d_D_Pitch_i = (short*)((char*)d_D + (x * blockSize * pitch) + (k * blockSize) + (i * pitch));
+    short* d_D_Pitch_k = (short*)((char*)d_D + (k * blockSize * pitch) + (k * blockSize) + (i * pitch));
+    short* d_D_Pitch_x = (short*)((char*)d_D + (k * blockSize * pitch) + (x * blockSize) + (i * pitch));
 
 
-//     lmem_A[i * blockSize + j] = d_D_Pitch_i[j];
-//     lmem_B[i * blockSize + j] = d_D_Pitch_k[j];
-//     __syncthreads();
+    lmem_A[i * blockSize + j] = d_D_Pitch_i[j];
+    lmem_B[i * blockSize + j] = d_D_Pitch_k[j];
+    __syncthreads();
 
-//     blockedUpdateFW(lmem_A, lmem_A, lmem_B, i, j, blockSize);
-//     __syncthreads();
+    blockedUpdateFW(lmem_A, lmem_A, lmem_B, i, j, blockSize);
+    __syncthreads();
 
-//     // Aggiorno la matrice con le nuove dipendenze 
-//     d_D_Pitch_i[j] = lmem_A[i * blockSize + j];
+    // Aggiorno la matrice con le nuove dipendenze 
+    d_D_Pitch_i[j] = lmem_A[i * blockSize + j];
 
-//     lmem_A[i * blockSize + j] = d_D_Pitch_x[j];
-//     lmem_B[i * blockSize + j] = d_D_Pitch_k[j];
-//     __syncthreads();
+    lmem_A[i * blockSize + j] = d_D_Pitch_x[j];
+    lmem_B[i * blockSize + j] = d_D_Pitch_k[j];
+    __syncthreads();
 
-//     blockedUpdateFW(lmem_A, lmem_B, lmem_A, i, j, blockSize);
-//     __syncthreads();
+    blockedUpdateFW(lmem_A, lmem_B, lmem_A, i, j, blockSize);
+    __syncthreads();
 
-//     // Aggiorno la matrice con le nuove dipendenze
-//     d_D_Pitch_x[j] = lmem_A[i * blockSize + j];
-// }
+    // Aggiorno la matrice con le nuove dipendenze
+    d_D_Pitch_x[j] = lmem_A[i * blockSize + j];
+}
 
 // Aggiorna i blocchi restanti
 __global__ void blocked_FW_phase3(short* d_D, ll n, int k, const int blockSize){
@@ -277,33 +277,33 @@ __global__ void blocked_FW_phase3(short* d_D, ll n, int k, const int blockSize){
     d_D[(x * blockSize * n) + (y * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 }
 
-// __global__ void blocked_FW_phase3_pitch(short* d_D, int pitch, int k, const int blockSize){
-//     int x = blockIdx.y;
-//     int y = blockIdx.x;
+__global__ void blocked_FW_phase3_pitch(short* d_D, int pitch, int k, const int blockSize){
+    int x = blockIdx.y;
+    int y = blockIdx.x;
 
-//     int i = threadIdx.y;
-//     int j = threadIdx.x;
+    int i = threadIdx.y;
+    int j = threadIdx.x;
 
-//     if(x == k && y == k)
-//         return;
+    if(x == k && y == k)
+        return;
 
-//     extern __shared__ short lmem[];
-//     short* lmem_A = (short*)lmem;
-//     short* lmem_B = (short*)(&lmem_A[blockSize * blockSize]);
-//     short* lmem_C = (short*)(&lmem_B[blockSize * blockSize]);
+    extern __shared__ short lmem[];
+    short* lmem_A = (short*)lmem;
+    short* lmem_B = (short*)(&lmem_A[blockSize * blockSize]);
+    short* lmem_C = (short*)(&lmem_B[blockSize * blockSize]);
 
-//     short* d_D_Pitch_x = (short*)((char*)d_D + (x * blockSize * pitch) + (y * blockSize) + (i * pitch));
-//     short* d_D_Pitch_k = (short*)((char*)d_D + (x * blockSize * pitch) + (k * blockSize) + (i * pitch));
-//     short* d_D_Pitch_y = (short*)((char*)d_D + (k * blockSize * pitch) + (y * blockSize) + (i * pitch));
+    short* d_D_Pitch_x = (short*)((char*)d_D + (x * blockSize * pitch) + (y * blockSize) + (i * pitch));
+    short* d_D_Pitch_k = (short*)((char*)d_D + (x * blockSize * pitch) + (k * blockSize) + (i * pitch));
+    short* d_D_Pitch_y = (short*)((char*)d_D + (k * blockSize * pitch) + (y * blockSize) + (i * pitch));
 
 
-//     lmem_A[i * blockSize + j] = d_D_Pitch_x[j];
-//     lmem_B[i * blockSize + j] = d_D_Pitch_k[j];
-//     lmem_C[i * blockSize + j] = d_D_Pitch_y[j];
-//     __syncthreads();
+    lmem_A[i * blockSize + j] = d_D_Pitch_x[j];
+    lmem_B[i * blockSize + j] = d_D_Pitch_k[j];
+    lmem_C[i * blockSize + j] = d_D_Pitch_y[j];
+    __syncthreads();
 
-//     blockedUpdateFW(lmem_A, lmem_B, lmem_C, i, j, blockSize);
-//     __syncthreads();
+    blockedUpdateFW(lmem_A, lmem_B, lmem_C, i, j, blockSize);
+    __syncthreads();
 
-//     d_D_Pitch_x[j] = lmem_A[i * blockSize + j];
-// }
+    d_D_Pitch_x[j] = lmem_A[i * blockSize + j];
+}

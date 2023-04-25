@@ -148,9 +148,13 @@ short* simple_parallel_FW(const short* g, ll numVertices, int blockSize, bool us
     return h_matrix;
 }
 
-short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize){
+short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize, bool usePitch){
+    size_t pitch = 0;
     short* d_matrix, *h_matrix;
-    const size_t memsize = numVertices * numVertices * sizeof(short);
+    size_t singleRow_memsize, memsize;
+
+    singleRow_memsize = numVertices * sizeof(short); 
+    memsize = numVertices * numVertices * sizeof(short);
 
     float elapsedTime;
     std::vector<float> times;
@@ -161,7 +165,11 @@ short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize){
     cuda(cudaEventCreate(&stop));
 
     cuda(cudaEventRecord(start));
-    cuda(cudaMalloc(&d_matrix, memsize)); //* allocate memory on device
+    if(usePitch){
+        cuda(cudaMallocPitch(&d_matrix, &pitch, singleRow_memsize, numVertices)); //* allocate memory on device
+    }
+    else
+        cuda(cudaMalloc(&d_matrix, memsize)); //* allocate memory on device
     cuda(cudaEventRecord(stop));
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
@@ -170,7 +178,11 @@ short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize){
     times.push_back(elapsedTime);
 
     cuda(cudaEventRecord(start));
-    cuda(cudaMemcpy(d_matrix, g, memsize, cudaMemcpyHostToDevice)); //* copy matrix to device
+    if(usePitch){
+        cuda(cudaMemcpy2D(d_matrix, pitch, g, singleRow_memsize, singleRow_memsize, numVertices, cudaMemcpyHostToDevice)); //* copy matrix to device
+    }
+    else
+        cuda(cudaMemcpy(d_matrix, g, memsize, cudaMemcpyHostToDevice)); //* copy matrix to device
     cuda(cudaEventRecord(stop));
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
@@ -189,10 +201,19 @@ short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize){
     dim3 dimBlock_phase3 = dim3(numBlocks, numBlocks);
     const size_t sharedMemSize = blockSize * blockSize * sizeof(short);
 
-    for(int k = 0; k < numBlocks; k++){
-        blocked_FW_phase1<<<1, dimBlock, sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
-        blocked_FW_phase2<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
-        blocked_FW_phase3<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+    if(usePitch){
+        for(int k = 0; k < numBlocks; k++){
+            blocked_FW_phase1_pitch<<<1, dimBlock, sharedMemSize>>>(d_matrix, pitch, k, blockSize);
+            blocked_FW_phase2_pitch<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, pitch, k, blockSize);
+            blocked_FW_phase3_pitch<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, pitch, k, blockSize);
+        }
+    }
+    else{
+        for(int k = 0; k < numBlocks; k++){
+            blocked_FW_phase1<<<1, dimBlock, sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+            blocked_FW_phase2<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+            blocked_FW_phase3<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+        }
     }
     //* ------------------------------------------------------ *//
     

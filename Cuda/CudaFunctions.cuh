@@ -20,4 +20,4 @@ inline void cudaCheck(cudaError_t err, const char *file, int line){
 
 short* simple_parallel_FW(const short* g, ll numVertices, int blockSize = DEFAULT_BLOCK_SIZE, bool usePitch = false, bool vectorize = false, bool debug = false);
 
-short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize = DEFAULT_BLOCK_SIZE);
+short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize = DEFAULT_BLOCK_SIZE, bool usePitch = false);

@@ -94,7 +94,8 @@ int main(int argc, char **argv){
             w_GPU = simple_parallel_FW(graph, numCol, blockSize, usePitch, vectorize);
             break;
         case 3:
-            w_GPU = blocked_parallel_FW(graph, numCol, blockSize);
+        // TODO: implement pitch in blocked parallel FW
+            w_GPU = blocked_parallel_FW(graph, numCol, blockSize, false);
             break;
     }
 
