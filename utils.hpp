@@ -24,5 +24,5 @@ void verify(const short* w_CPU, ll numColCPU, const short* w_GPU, ll numColGPU){
             if(w_CPU[i * numColCPU + j] != w_GPU[i * numColGPU + j])
                 std::cerr << "Errore all'indice '" << i * numColCPU + j << "' : " << \
                 w_CPU[i * numColCPU + j] << " != " << w_GPU[i * numColGPU + j] << std::endl;
-    std::cout << "Verifica completata!" << std::endl;
+    std::cout << "Verifica completata" << std::endl;
 }
