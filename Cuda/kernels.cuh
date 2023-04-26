@@ -12,12 +12,10 @@ short4 operator+(const short4& a, const short4& b) {
 
 __forceinline__ __host__ __device__
 short4 checkWeight(const short4& a, const short4& b) {
-    short4 ret;
-    ret.x = (a.x < b.x) ? a.x : b.x;
-    ret.y = (a.y < b.y) ? a.y : b.y;
-    ret.z = (a.z < b.z) ? a.z : b.z;
-    ret.w = (a.w < b.w) ? a.w : b.w;
-    return ret;
+    return make_short4(a.x < b.x ? a.x : b.x,
+                        a.y < b.y ? a.y : b.y,
+                        a.z < b.z ? a.z : b.z,
+                        a.w < b.w ? a.w : b.w);
 }
 
 
@@ -142,6 +140,7 @@ __global__ void blocked_FW_phase1(short* d_D, ll n, int k, const int blockSize){
     extern __shared__ short lmem[];
     short* lmem_A = (short*)lmem;
  
+    // A: blocco principale nella diagonale da aggiornare
     lmem_A[i * blockSize + j] = d_D[(k * blockSize * n) + (k * blockSize) + (i * n + j)];
     __syncthreads();
 
@@ -157,15 +156,15 @@ __global__ void blocked_FW_phase1_pitch(short* d_D, int pitch, int k, const int 
 
     extern __shared__ short lmem[];
     short* lmem_A = (short*)lmem;
-    short* d_D_Pitch_i = (short*)((char*)d_D + (k * blockSize * pitch) + (k * blockSize) + (i * pitch));
+    short* d_D_Pitch_main = (short*)((char*)d_D + (k * blockSize * pitch) + (k * blockSize) + (i * pitch));
 
-    lmem_A[i * blockSize + j] = d_D_Pitch_i[j];
+    lmem_A[i * blockSize + j] = d_D_Pitch_main[j];
     __syncthreads();
 
     blockedUpdateFW(lmem_A, lmem_A, lmem_A, i, j, blockSize);
     __syncthreads();
 
-    d_D_Pitch_i[j] = lmem_A[i * blockSize + j];
+    d_D_Pitch_main[j] = lmem_A[i * blockSize + j];
 }
 
 // Aggiorna i blocchi nella stessa riga e colonna del blocco principale (k)
@@ -245,15 +244,21 @@ __global__ void blocked_FW_phase2_pitch(short* d_D, int pitch, int k, const int 
     d_D_Pitch_row[j] = lmem_A[i * blockSize + j];
 }
 
-// Aggiorna i blocchi restanti
+// Aggiorna i blocchi restanti, che non sono nella stessa riga o colonna del blocco principale (k)
+// Ognuno di questi blocchi dipende dai corrispondenti blocchi 
+// perpendicolari nella riga e colonna del blocco principale
 __global__ void blocked_FW_phase3(short* d_D, ll n, int k, const int blockSize){
+    // x: seleziona la riga (in blocchi)
+    // y: seleziona la colonna (in blocchi)
     int x = blockIdx.y;
     int y = blockIdx.x;
 
     int i = threadIdx.y;
     int j = threadIdx.x;
 
-    if(x == k && y == k)
+    // se x o y è uguale a k allora il blocco 
+    // è stato già aggiornato nella fase 2
+    if(x == k || y == k)
         return;
 
     extern __shared__ short lmem[];
@@ -261,6 +266,9 @@ __global__ void blocked_FW_phase3(short* d_D, ll n, int k, const int blockSize){
     short* lmem_B = (short*)(&lmem_A[blockSize * blockSize]);
     short* lmem_C = (short*)(&lmem_B[blockSize * blockSize]);
 
+    // A: blocco da aggiornare
+    // B: blocco nella stessa colonna del blocco principale e nella stessa riga di A
+    // C: blocco nella stessa riga del blocco principale e nella stessa colonna di A
     lmem_A[i * blockSize + j] = d_D[(x * blockSize * n) + (y * blockSize) + (i * n + j)];
     lmem_B[i * blockSize + j] = d_D[(x * blockSize * n) + (k * blockSize) + (i * n + j)];
     lmem_C[i * blockSize + j] = d_D[(k * blockSize * n) + (y * blockSize) + (i * n + j)];
@@ -279,7 +287,7 @@ __global__ void blocked_FW_phase3_pitch(short* d_D, int pitch, int k, const int 
     int i = threadIdx.y;
     int j = threadIdx.x;
 
-    if(x == k && y == k)
+    if(x == k || y == k)
         return;
 
     extern __shared__ short lmem[];
@@ -290,7 +298,6 @@ __global__ void blocked_FW_phase3_pitch(short* d_D, int pitch, int k, const int 
     short* d_D_Pitch_x = (short*)((char*)d_D + (x * blockSize * pitch) + (y * blockSize) + (i * pitch));
     short* d_D_Pitch_k = (short*)((char*)d_D + (x * blockSize * pitch) + (k * blockSize) + (i * pitch));
     short* d_D_Pitch_y = (short*)((char*)d_D + (k * blockSize * pitch) + (y * blockSize) + (i * pitch));
-
 
     lmem_A[i * blockSize + j] = d_D_Pitch_x[j];
     lmem_B[i * blockSize + j] = d_D_Pitch_k[j];
