@@ -95,7 +95,7 @@ int main(int argc, char **argv){
             break;
         case 3:
         // TODO: implement pitch in blocked parallel FW
-            w_GPU = blocked_parallel_FW(graph, numCol, blockSize, false);
+            w_GPU = blocked_parallel_FW(graph, numCol, blockSize, usePitch);
             break;
     }
 
@@ -111,7 +111,7 @@ int main(int argc, char **argv){
             resultsForVerify = FloydWarshallCPU(graph, numVertices, numCol);
         else{
             cpuExec = false;
-            resultsForVerify = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, false, true, true);
+            resultsForVerify = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, false, false, true);
         }
 
         verify(resultsForVerify, numVertices, w_GPU, numCol);

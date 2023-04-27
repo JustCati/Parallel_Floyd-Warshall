@@ -12,10 +12,10 @@ short4 operator+(const short4& a, const short4& b) {
 
 __forceinline__ __host__ __device__
 short4 checkWeight(const short4& a, const short4& b) {
-    return make_short4(a.x < b.x ? a.x : b.x,
+    return make_short4( a.x < b.x ? a.x : b.x,
                         a.y < b.y ? a.y : b.y,
                         a.z < b.z ? a.z : b.z,
-                        a.w < b.w ? a.w : b.w);
+                        a.w < b.w ? a.w : b.w );
 }
 
 
@@ -102,9 +102,9 @@ __global__ void FW_simple_kernel_vectorized_pitch(short4* d_D, ll pitch, ll n, i
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
 
-#if 1 // "brutto ma veloce" (~0.5s più veloce con 2^13)
+#if 1
         tempIk = *(((short*)(d_D_Pitch_i + (k >> 2))) + lsb_2);
-#else // "pulito ma più lento"
+#else
         if(lsb_2 == 0)
             tempIk = d_D_Pitch_i[(k >> 2)].x;
         if(lsb_2 == 1)
@@ -150,21 +150,24 @@ __global__ void blocked_FW_phase1(short* d_D, ll n, int k, const int blockSize){
     d_D[(k * blockSize * n) + (k * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 }
 
-__global__ void blocked_FW_phase1_pitch(short* d_D, int pitch, int k, const int blockSize){
+__global__ void blocked_FW_phase1_pitch(short* d_D, ll pitch, ll n, int k, const int blockSize){
     int i = threadIdx.y;
     int j = threadIdx.x;
 
     extern __shared__ short lmem[];
     short* lmem_A = (short*)lmem;
-    short* d_D_Pitch_main = (short*)((char*)d_D + (k * blockSize * pitch) + (k * blockSize) + (i * pitch));
 
-    lmem_A[i * blockSize + j] = d_D_Pitch_main[j];
+    // Porta i puntatori fino alla riga usando il pitch, l'offset per
+    // le colonne viene gestito poi in "colonne" (pitch / sizeof(T))
+    short* d_D_Pitch_main = (short*)((char*)d_D + (k * blockSize * pitch));
+
+    lmem_A[i * blockSize + j] = d_D_Pitch_main[(k * blockSize) + (i * n + j)];
     __syncthreads();
 
     blockedUpdateFW(lmem_A, lmem_A, lmem_A, i, j, blockSize);
     __syncthreads();
 
-    d_D_Pitch_main[j] = lmem_A[i * blockSize + j];
+    d_D_Pitch_main[(k * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 }
 
 // Aggiorna i blocchi nella stessa riga e colonna del blocco principale (k)
@@ -206,7 +209,7 @@ __global__ void blocked_FW_phase2(short* d_D, ll n, int k, const int blockSize){
     d_D[(k * blockSize * n) + (x * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 }
 
-__global__ void blocked_FW_phase2_pitch(short* d_D, int pitch, int k, const int blockSize){
+__global__ void blocked_FW_phase2_pitch(short* d_D, ll pitch, ll n, int k, const int blockSize){
     int x = blockIdx.x;
 
     int i = threadIdx.y;
@@ -219,29 +222,29 @@ __global__ void blocked_FW_phase2_pitch(short* d_D, int pitch, int k, const int 
     short* lmem_A = (short*)lmem;
     short* lmem_B = (short*)(&lmem_A[blockSize * blockSize]);
 
+    // Porta i puntatori fino alla riga usando il pitch, l'offset per
+    // le colonne viene gestito poi in "colonne" (pitch / sizeof(T))
+    short* d_D_Pitch_col = (short*)((char*)d_D + (x * blockSize * pitch));
+    short* d_D_Pitch_main = (short*)((char*)d_D + (k * blockSize * pitch));
+    short* d_D_Pitch_row = (short*)((char*)d_D + (k * blockSize * pitch));
 
-    short* d_D_Pitch_col = (short*)((char*)d_D + (x * blockSize * pitch) + (k * blockSize) + (i * pitch));
-    short* d_D_Pitch_main = (short*)((char*)d_D + (k * blockSize * pitch) + (k * blockSize) + (i * pitch));
-    short* d_D_Pitch_row = (short*)((char*)d_D + (k * blockSize * pitch) + (x * blockSize) + (i * pitch));
-
-
-    lmem_A[i * blockSize + j] = d_D_Pitch_col[j];
-    lmem_B[i * blockSize + j] = d_D_Pitch_main[j];
+    lmem_A[i * blockSize + j] = d_D_Pitch_col[(k * blockSize) + (i * n + j)];
+    lmem_B[i * blockSize + j] = d_D_Pitch_main[(k * blockSize) + (i * n + j)];
     __syncthreads();
 
     blockedUpdateFW(lmem_A, lmem_A, lmem_B, i, j, blockSize);
     __syncthreads();
 
-    d_D_Pitch_col[j] = lmem_A[i * blockSize + j];
+    d_D_Pitch_col[(k * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 
-    lmem_A[i * blockSize + j] = d_D_Pitch_row[j];
-    lmem_B[i * blockSize + j] = d_D_Pitch_main[j];
+    lmem_A[i * blockSize + j] = d_D_Pitch_row[(x * blockSize) + (i * n + j)];
+    lmem_B[i * blockSize + j] = d_D_Pitch_main[(k * blockSize) + (i * n + j)];
     __syncthreads();
 
     blockedUpdateFW(lmem_A, lmem_B, lmem_A, i, j, blockSize);
     __syncthreads();
 
-    d_D_Pitch_row[j] = lmem_A[i * blockSize + j];
+    d_D_Pitch_row[(x * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 }
 
 // Aggiorna i blocchi restanti, che non sono nella stessa riga o colonna del blocco principale (k)
@@ -280,7 +283,7 @@ __global__ void blocked_FW_phase3(short* d_D, ll n, int k, const int blockSize){
     d_D[(x * blockSize * n) + (y * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 }
 
-__global__ void blocked_FW_phase3_pitch(short* d_D, int pitch, int k, const int blockSize){
+__global__ void blocked_FW_phase3_pitch(short* d_D, ll pitch, ll n, int k, const int blockSize){
     int x = blockIdx.y;
     int y = blockIdx.x;
 
@@ -295,17 +298,19 @@ __global__ void blocked_FW_phase3_pitch(short* d_D, int pitch, int k, const int 
     short* lmem_B = (short*)(&lmem_A[blockSize * blockSize]);
     short* lmem_C = (short*)(&lmem_B[blockSize * blockSize]);
 
-    short* d_D_Pitch_x = (short*)((char*)d_D + (x * blockSize * pitch) + (y * blockSize) + (i * pitch));
-    short* d_D_Pitch_k = (short*)((char*)d_D + (x * blockSize * pitch) + (k * blockSize) + (i * pitch));
-    short* d_D_Pitch_y = (short*)((char*)d_D + (k * blockSize * pitch) + (y * blockSize) + (i * pitch));
+    // Porta i puntatori fino alla riga usando il pitch, l'offset per
+    // le colonne viene gestito poi in "colonne" (pitch / sizeof(T))
+    short* d_D_Pitch_block = (short*)((char*)d_D + (x * blockSize * pitch));
+    short* d_D_Pitch_col = (short*)((char*)d_D + (x * blockSize * pitch));
+    short* d_D_Pitch_row= (short*)((char*)d_D + (k * blockSize * pitch));
 
-    lmem_A[i * blockSize + j] = d_D_Pitch_x[j];
-    lmem_B[i * blockSize + j] = d_D_Pitch_k[j];
-    lmem_C[i * blockSize + j] = d_D_Pitch_y[j];
+    lmem_A[i * blockSize + j] = d_D_Pitch_block[(y * blockSize) + (i * n + j)];
+    lmem_B[i * blockSize + j] = d_D_Pitch_col[(k * blockSize) + (i * n + j)];
+    lmem_C[i * blockSize + j] = d_D_Pitch_row[(y * blockSize) + (i * n + j)];
     __syncthreads();
 
     blockedUpdateFW(lmem_A, lmem_B, lmem_C, i, j, blockSize);
     __syncthreads();
 
-    d_D_Pitch_x[j] = lmem_A[i * blockSize + j];
+    d_D_Pitch_block[(y * blockSize) + (i * n + j)] = lmem_A[i * blockSize + j];
 }

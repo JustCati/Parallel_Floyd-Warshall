@@ -203,9 +203,9 @@ short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize, bool u
 
     if(usePitch){
         for(int k = 0; k < numBlocks; k++){
-            blocked_FW_phase1_pitch<<<1, dimBlock, sharedMemSize>>>(d_matrix, pitch, k, blockSize);
-            blocked_FW_phase2_pitch<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, pitch, k, blockSize);
-            blocked_FW_phase3_pitch<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, pitch, k, blockSize);
+            blocked_FW_phase1_pitch<<<1, dimBlock, sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
+            blocked_FW_phase2_pitch<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
+            blocked_FW_phase3_pitch<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
         }
     }
     else{
@@ -216,7 +216,7 @@ short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize, bool u
         }
     }
     //* ------------------------------------------------------ *//
-    
+
     cuda(cudaEventRecord(stop));
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
@@ -234,7 +234,11 @@ short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize, bool u
     times.push_back(elapsedTime);
 
     cuda(cudaEventRecord(start));
-    cuda(cudaMemcpy(h_matrix, d_matrix, memsize, cudaMemcpyDeviceToHost)); //* copy matrix to host
+    if(usePitch){
+        cuda(cudaMemcpy2D(h_matrix, singleRow_memsize, d_matrix, pitch, singleRow_memsize, numVertices, cudaMemcpyDeviceToHost)); //* copy matrix to host
+    }
+    else
+        cuda(cudaMemcpy(h_matrix, d_matrix, memsize, cudaMemcpyDeviceToHost)); //* copy matrix to host
     cuda(cudaEventRecord(stop));
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
@@ -244,7 +248,8 @@ short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize, bool u
     outputs.push_back("CudaMemCpy to host Bandwidth: ");
     times.push_back(memsize / elapsedTime / 1.0e6);
 
-    std::string title =  "Starting BLOCKED FW KERNEL with " + std::to_string(numVertices) + " nodes";
+    std::string title =  "Starting BLOCKED FW KERNEL with " + std::to_string(numVertices) +\
+    " nodes" + (usePitch ? " with pitch," : ""); // + (vectorize ? " with vectorization" : "");
     printMetrics(title, outputs, times); //* print metrics
 
     cuda(cudaEventDestroy(start));
