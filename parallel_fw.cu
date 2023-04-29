@@ -32,7 +32,7 @@ int main(int argc, char **argv){
 
     int opt;
     extern char *optarg;
-    std::map<short, short> sqrts = {{1024, 32}, {256, 16}, {64, 8}, {16, 4}, {4, 2}};
+    std::map<short, short> sqrts = {{1024, 32}, {256, 16}, {64, 8}, {16, 4}};
     while((opt = getopt(argc, argv, "p:b:a:cvVP")) != -1){
         switch(opt){
             case 'p':
@@ -94,8 +94,7 @@ int main(int argc, char **argv){
             w_GPU = simple_parallel_FW(graph, numCol, blockSize, usePitch, vectorize);
             break;
         case 3:
-        // TODO: implement pitch in blocked parallel FW
-            w_GPU = blocked_parallel_FW(graph, numCol, blockSize, usePitch);
+            w_GPU = blocked_parallel_FW(graph, numCol, blockSize, usePitch, vectorize);
             break;
     }
 
