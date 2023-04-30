@@ -30,9 +30,9 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
     std::cout << "Total Function time: " << std::accumulate(times.begin(), times.end(), 0.0) / 1000 << " s" << std::endl;
 }
 
-short* simple_parallel_FW(const short* g, ll numVertices, int blockSize, bool usePitch, bool vectorize, bool debug){
+short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool usePitch, bool vectorize, bool debug){
     size_t pitch = 0;
-    short* d_matrix, *h_matrix;
+    short *d_matrix, *h_matrix;
     size_t singleRow_memsize, memsize;
 
     if (vectorize){
@@ -85,7 +85,7 @@ short* simple_parallel_FW(const short* g, ll numVertices, int blockSize, bool us
     //* ---------------------- KERNEL ---------------------- *//
     dim3 dimBlock = dim3(blockSize, blockSize);
     dim3 numBlock = dim3((numVertices + dimBlock.x - 1) / dimBlock.x, (numVertices + dimBlock.y - 1) / dimBlock.y);
-    
+
     if(!vectorize){
         if(usePitch)
             for(int k = 0; k < numVertices; k++)
@@ -104,7 +104,7 @@ short* simple_parallel_FW(const short* g, ll numVertices, int blockSize, bool us
     }
 
     //* ---------------------------------------------------- *//
-    
+
     cuda(cudaEventRecord(stop));
     cuda(cudaEventSynchronize(stop));
     cuda(cudaEventElapsedTime(&elapsedTime, start, stop));
@@ -148,13 +148,19 @@ short* simple_parallel_FW(const short* g, ll numVertices, int blockSize, bool us
     return h_matrix;
 }
 
-short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize, bool usePitch){
+short* blocked_parallel_FW(const short *g, ll numVertices, int blockSize, bool usePitch, bool vectorize){
     size_t pitch = 0;
-    short* d_matrix, *h_matrix;
+    short *d_matrix, *h_matrix;
     size_t singleRow_memsize, memsize;
 
-    singleRow_memsize = numVertices * sizeof(short); 
-    memsize = numVertices * numVertices * sizeof(short);
+    if (vectorize){
+        singleRow_memsize = (numVertices >> 2) * sizeof(short4);
+        memsize = (numVertices >> 2) * numVertices * sizeof(short4);
+    }
+    else{
+        singleRow_memsize = numVertices * sizeof(short);
+        memsize = numVertices * numVertices * sizeof(short);
+    }
 
     float elapsedTime;
     std::vector<float> times;
@@ -201,18 +207,31 @@ short* blocked_parallel_FW(const short* g, ll numVertices, int blockSize, bool u
     dim3 dimBlock_phase3 = dim3(numBlocks, numBlocks);
     const size_t sharedMemSize = blockSize * blockSize * sizeof(short);
 
-    if(usePitch){
+    if(vectorize){
+        dimBlock = dim3(blockSize >> 2, blockSize);
+        std::cout << "dimBlock: " << dimBlock.x << " " << dimBlock.y << std::endl;
+        std::cout << "dimBlock_phase3: " << dimBlock_phase3.x << " " << dimBlock_phase3.y << std::endl;
+
         for(int k = 0; k < numBlocks; k++){
-            blocked_FW_phase1_pitch<<<1, dimBlock, sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
-            blocked_FW_phase2_pitch<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
-            blocked_FW_phase3_pitch<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
+            blocked_FW_phase1_vectorized<<<1, dimBlock, sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+            blocked_FW_phase2_vectorized<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+            blocked_FW_phase3_vectorized<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
         }
     }
     else{
-        for(int k = 0; k < numBlocks; k++){
-            blocked_FW_phase1<<<1, dimBlock, sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
-            blocked_FW_phase2<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
-            blocked_FW_phase3<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+        if(usePitch){
+            for(int k = 0; k < numBlocks; k++){
+                blocked_FW_phase1_pitch<<<1, dimBlock, sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
+                blocked_FW_phase2_pitch<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
+                blocked_FW_phase3_pitch<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
+            }
+        }
+        else{
+            for(int k = 0; k < numBlocks; k++){
+                blocked_FW_phase1<<<1, dimBlock, sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+                blocked_FW_phase2<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+                blocked_FW_phase3<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+            }
         }
     }
     //* ------------------------------------------------------ *//

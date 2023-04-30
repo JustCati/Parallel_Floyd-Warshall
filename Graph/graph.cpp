@@ -6,7 +6,7 @@
 
 short* graphInit(int numVertices, int p, int seed){
     ll numCol = numVertices;
-    short* g = new short[numCol * numCol];
+    short *g = new short[numCol * numCol];
 
     srand(seed);
     for(int i = 0; i < numCol; i++){
@@ -35,7 +35,7 @@ short* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
     else 
         numCol = numVertices;
     
-    short* g = new short[numCol * numCol];
+    short *g = new short[numCol * numCol];
 
     srand(seed);
     for(int i = 0; i < numCol; i++){
@@ -60,7 +60,7 @@ short* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
 
 
 short* FloydWarshallCPU(const short* g, ll numVertices, ll numCol){
-    short* W = new short[numVertices * numVertices];
+    short *W = new short[numVertices * numVertices];
 
     for(int i = 0; i < numVertices; i++)
         for(int j = 0; j < numVertices; j++)

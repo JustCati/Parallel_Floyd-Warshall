@@ -27,7 +27,7 @@ int main(int argc, char **argv){
     if(argc < 2 || argc > 12)
         throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] [-P]");
         
-    short* graph = nullptr;
+    short *graph = nullptr;
     const ll numVertices = atoll(argv[argc - 1]);
 
     int opt;
@@ -85,7 +85,7 @@ int main(int argc, char **argv){
 
     //! ------------ PARALLEL FLOYD WARSHALL ON GPU -----
 
-    short* w_GPU = nullptr;
+    short *w_GPU = nullptr;
     switch (algorithm){
         case 1:
             w_GPU = FloydWarshallCPU(graph, numVertices, numCol);
@@ -110,7 +110,7 @@ int main(int argc, char **argv){
             resultsForVerify = FloydWarshallCPU(graph, numVertices, numCol);
         else{
             cpuExec = false;
-            resultsForVerify = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, false, false, true);
+            resultsForVerify = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, false, !(numVertices & 3), true);
         }
 
         verify(resultsForVerify, numVertices, w_GPU, numCol);
