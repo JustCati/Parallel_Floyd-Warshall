@@ -95,12 +95,13 @@ short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool us
                 FW_simple_kernel<<<numBlock, dimBlock>>>(d_matrix, numVertices, k); //* call kernel
     }
     else{ //* vectorize with short4 type (default)
+        dimBlock = dim3(blockSize >> 2, blockSize);
         if(usePitch)
             for(int k = 0; k < numVertices; k++)
-                FW_simple_kernel_vectorized_pitch<<<numBlock, dimBlock>>>((short4*)d_matrix, pitch, numVertices, k); //* call kernel
+                FW_simple_kernel_vectorized_pitch<<<numBlock, dimBlock>>>((short4*)d_matrix, pitch, numVertices >> 2, k); //* call kernel
         else
             for(int k = 0; k < numVertices; k++)
-                FW_simple_kernel_vectorized<<<numBlock, dimBlock>>>((short4*)d_matrix, numVertices, k); //* call kernel
+                FW_simple_kernel_vectorized<<<numBlock, dimBlock>>>((short4*)d_matrix, numVertices >> 2, k); //* call kernel
     }
 
     //* ---------------------------------------------------- *//
