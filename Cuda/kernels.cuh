@@ -20,8 +20,8 @@ short4 checkWeight(const short4& a, const short4& b) {
 
 
 __global__ void FW_simple_kernel(short *graph, ll n, int k) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    int i = blockIdx.y * blockDim.y + threadIdx.y;
   
     if (i < n && j < n) {
         short ij = graph[i * n + j];
@@ -34,8 +34,8 @@ __global__ void FW_simple_kernel(short *graph, ll n, int k) {
 }
 
 __global__ void FW_simple_kernel_pitch(short *graph, ll pitch, ll n, int k) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    int i = blockIdx.y * blockDim.y + threadIdx.y;
 
     short *d_D_Pitch_i = (short*)((char*)graph + i * pitch);
     short *d_D_Pitch_k = (short*)((char*)graph + k * pitch);
@@ -51,8 +51,8 @@ __global__ void FW_simple_kernel_pitch(short *graph, ll pitch, ll n, int k) {
 }
 
 __global__ void FW_simple_kernel_vectorized(short4 *graph, ll n, int k){
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    int i = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i < n && j < (n >> 2)) {
         short tempIk;
@@ -65,19 +65,16 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll n, int k){
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
 
-#if 1 // "brutto ma veloce" (~0.5s più veloce con 2^13)
-        tempIk = *(((short*)(graph + i * numElem + (k >> 2))) + lsb_2);
-#else // "pulito ma più lento"
-        if(lsb_2 == 0)
-            tempIk = graph[i * numElem + (k >> 2)].x;
-        if(lsb_2 == 1)
-            tempIk = graph[i * numElem + (k >> 2)].y;
-        if(lsb_2 == 2)
-            tempIk = graph[i * numElem + (k >> 2)].z;
-        if(lsb_2 == 3)
-            tempIk = graph[i * numElem + (k >> 2)].w;
-#endif
+        // if(lsb_2 == 0)
+        //     tempIk = graph[i * numElem + (k >> 2)].x;
+        // if(lsb_2 == 1)
+        //     tempIk = graph[i * numElem + (k >> 2)].y;
+        // if(lsb_2 == 2)
+        //     tempIk = graph[i * numElem + (k >> 2)].z;
+        // if(lsb_2 == 3)
+        //     tempIk = graph[i * numElem + (k >> 2)].w;
 
+        tempIk = *(((short*)(graph + i * numElem + (k >> 2))) + lsb_2);
         ik = make_short4(tempIk, tempIk, tempIk, tempIk);
 
         short4 res = ik + kj;
@@ -86,8 +83,8 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll n, int k){
 }
 
 __global__ void FW_simple_kernel_vectorized_pitch(short4 *graph, ll pitch, ll n, int k){
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    int i = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i < n && j < (n >> 2)) {
         short tempIk;
@@ -102,18 +99,16 @@ __global__ void FW_simple_kernel_vectorized_pitch(short4 *graph, ll pitch, ll n,
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
 
-#if 1
+        // if(lsb_2 == 0)
+        //     tempIk = d_D_Pitch_i[(k >> 2)].x;
+        // if(lsb_2 == 1)
+        //     tempIk = d_D_Pitch_i[(k >> 2)].y;
+        // if(lsb_2 == 2)
+        //     tempIk = d_D_Pitch_i[(k >> 2)].z;
+        // if(lsb_2 == 3)
+        //     tempIk = d_D_Pitch_i[(k >> 2)].w;
+
         tempIk = *(((short*)(d_D_Pitch_i + (k >> 2))) + lsb_2);
-#else
-        if(lsb_2 == 0)
-            tempIk = d_D_Pitch_i[(k >> 2)].x;
-        if(lsb_2 == 1)
-            tempIk = d_D_Pitch_i[(k >> 2)].y;
-        if(lsb_2 == 2)
-            tempIk = d_D_Pitch_i[(k >> 2)].z;
-        if(lsb_2 == 3)
-            tempIk = d_D_Pitch_i[(k >> 2)].w;
-#endif
         ik = make_short4(tempIk, tempIk, tempIk, tempIk);
 
         short4 res = ik + kj;
