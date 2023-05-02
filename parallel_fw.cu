@@ -20,12 +20,11 @@
     -a <algorithm>: Set algorithm to use (1: cpu, 1: simple, 2: blocked)
 */
 int main(int argc, char **argv){
-    bool usePitch = false, vectorize = false;
-    bool toVerify = false, printResults = false;
     int perc = 50, blockSize = DEFAULT_BLOCK_SIZE, algorithm = 0;
+    bool toVerify = false, printResults = false, vectorize = false;
 
-    if(argc < 2 || argc > 12)
-        throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] [-P]");
+    if(argc < 2 || argc > 11)
+        throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v]");
         
     short *graph = nullptr;
     const ll numVertices = atoll(argv[argc - 1]);
@@ -33,7 +32,7 @@ int main(int argc, char **argv){
     int opt;
     extern char *optarg;
     std::map<short, short> sqrts = {{1024, 32}, {256, 16}, {64, 8}, {16, 4}};
-    while((opt = getopt(argc, argv, "p:b:a:cvVP")) != -1){
+    while((opt = getopt(argc, argv, "p:b:a:cvV")) != -1){
         switch(opt){
             case 'p':
                 perc = atoi(optarg);
@@ -54,9 +53,6 @@ int main(int argc, char **argv){
                 break;
             case 'c':
                 toVerify = true;
-                break;
-            case 'P':
-                usePitch = true;
                 break;
             case 'v':
                 vectorize = true;
@@ -91,10 +87,10 @@ int main(int argc, char **argv){
             w_GPU = FloydWarshallCPU(graph, numVertices, numCol);
             break;
         case 2:
-            w_GPU = simple_parallel_FW(graph, numCol, blockSize, usePitch, vectorize);
+            w_GPU = simple_parallel_FW(graph, numCol, blockSize, vectorize);
             break;
         case 3:
-            w_GPU = blocked_parallel_FW(graph, numCol, blockSize, usePitch, vectorize);
+            w_GPU = blocked_parallel_FW(graph, numCol, blockSize, vectorize);
             break;
     }
 
@@ -110,7 +106,7 @@ int main(int argc, char **argv){
             resultsForVerify = FloydWarshallCPU(graph, numVertices, numCol);
         else{
             cpuExec = false;
-            resultsForVerify = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, false, !(numVertices & 3), true);
+            resultsForVerify = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, !(numVertices & 3), true);
         }
 
         verify(resultsForVerify, numVertices, w_GPU, numCol);
