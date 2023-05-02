@@ -149,9 +149,9 @@ short* blocked_parallel_FW(const short *g, ll numVertices, int blockSize, bool v
         dimBlock = dim3(blockSize >> 2, blockSize);
 
         for(int k = 0; k < numBlocks; k++){
-            blocked_FW_phase1_vectorized<<<1, dimBlock, sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
-            blocked_FW_phase2_vectorized<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
-            blocked_FW_phase3_vectorized<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, numVertices, k, blockSize);
+            blocked_FW_phase1_vectorized<<<1, dimBlock, sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
+            blocked_FW_phase2_vectorized<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
+            blocked_FW_phase3_vectorized<<<dimBlock_phase3, dimBlock, 3 * sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
         }
     }
     else{
