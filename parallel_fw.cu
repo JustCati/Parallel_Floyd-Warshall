@@ -11,7 +11,6 @@
 #define ll long long
 
 /*
-    -P: use pitch
     -c: check / verify results
     -V: (verbose) print results matrix
     -v: vectorized if possible with short4
