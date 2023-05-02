@@ -96,6 +96,7 @@ short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool us
     }
     else{ //* vectorize with short4 type (default)
         dimBlock = dim3(blockSize >> 2, blockSize);
+
         if(usePitch)
             for(int k = 0; k < numVertices; k++)
                 FW_simple_kernel_vectorized_pitch<<<numBlock, dimBlock>>>((short4*)d_matrix, pitch, numVertices >> 2, k); //* call kernel
@@ -210,8 +211,6 @@ short* blocked_parallel_FW(const short *g, ll numVertices, int blockSize, bool u
 
     if(vectorize){
         dimBlock = dim3(blockSize >> 2, blockSize);
-        std::cout << "dimBlock: " << dimBlock.x << " " << dimBlock.y << std::endl;
-        std::cout << "dimBlock_phase3: " << dimBlock_phase3.x << " " << dimBlock_phase3.y << std::endl;
 
         for(int k = 0; k < numBlocks; k++){
             blocked_FW_phase1_vectorized<<<1, dimBlock, sharedMemSize>>>(d_matrix, numVertices, k, blockSize);

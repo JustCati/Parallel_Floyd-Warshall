@@ -128,20 +128,26 @@ __device__ void blockedUpdateFW(short *graph_ij, short *graph_ik, short *graph_k
 
 
 __forceinline__
-__device__ void blockedUpdateFW_vectorized(short4 *graph_ij, short4 *graph_ik, short4 *graph_kj, int i, int j, const int blockSize){
+__device__ void blockedUpdateFW_vectorized(short4 *graph_ij, short4 *graph_ik, short4 *graph_kj, int i, int j, const int blockSize, bool debug = false){
     for(int k = 0; k < blockSize; k++){
-        short4 ij = graph_ij[i * blockSize + j];
-        short4 kj = graph_kj[k * blockSize + j];
+        short4 ij = graph_ij[j];
+
+        short4 *graph_KJ = (short4*)&(((short*)graph_kj)[k * blockSize]);
+        short4 kj = graph_KJ[j];
 
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
-        short tempIk = *(((short*)(graph_ik + i * blockSize + (k >> 2))) + lsb_2);
+        short tempIk = *(((short*)(graph_ik + (k >> 2))) + lsb_2);
+            
 
         short4 ik = make_short4(tempIk, tempIk, tempIk, tempIk);
-        short4 sum = ik + kj;
-
-        graph_ij[i * blockSize + j] = checkWeight(sum, ij);
+        graph_ij[j] = checkWeight(ik + kj, ij);
         __syncthreads();
+
+        if(debug)
+            printf("k: %d, i: %d, j: %d, ij: (%d, %d, %d, %d), ik: %d, kj: (%d, %d, %d, %d), res: (%d, %d, %d, %d)\n",\
+            k, i, j, ij.x, ij.y, ij.z, ij.w, tempIk, kj.x, kj.y, kj.z, kj.w, graph_ij[j].x, graph_ij[j].y, graph_ij[j].z, graph_ij[j].w);
+
     }
 }
 
@@ -187,16 +193,19 @@ __global__ void blocked_FW_phase1_vectorized(short *graph, ll n, int k, const in
     int j = threadIdx.x;
 
     extern __shared__ short lmem_p[];
-    short4 *lmem = (short4*)lmem_p;
+    short4 *lmem = (short4*)&lmem_p[i * blockSize];
     short4 *graph_Block = (short4*)&graph[(k * blockSize * n) + (k * blockSize) + (i * n)];
 
-    lmem[i * blockSize + j] = graph_Block[j];
+    lmem[j] = graph_Block[j];
     __syncthreads();
 
-    blockedUpdateFW_vectorized(lmem, lmem, lmem, i, j, blockSize);
+    // printf("k: %d, i: %d, j: %d, lmem(%p): (%d, %d, %d, %d)\n", k, i, j, &lmem[j], lmem[j].x, lmem[j].y, lmem[j].z, lmem[j].w);
+
+    short4 *lmem_kj = (short4*)lmem_p;
+    blockedUpdateFW_vectorized(lmem, lmem, lmem_kj, i, j, blockSize);
     __syncthreads();
 
-    graph_Block[j] = lmem[i * blockSize + j];
+    graph_Block[j] = lmem[j];
 }
 
 // Aggiorna i blocchi nella stessa riga e colonna del blocco principale (k)
@@ -287,30 +296,36 @@ __global__ void blocked_FW_phase2_vectorized(short *graph, ll n, int k, const in
         return;
 
     extern __shared__ short lmem[];
-    short4 *lmem_Block = (short4*)lmem;
-    short4 *lmem_Main = (short4*)&lmem_Block[blockSize * blockSize];
+    short4 *lmem_Block = (short4*)&lmem[i * blockSize];
+    short4 *lmem_Main = (short4*)&((short*)lmem_Block)[blockSize * blockSize];
 
     short4 *graph_Block = (short4*)&graph[(x * blockSize * n) + (k * blockSize) + (i * n)];
     short4 *graph_Main = (short4*)&graph[(k * blockSize * n) + (k * blockSize) + (i * n)];
 
-    lmem_Block[i * blockSize + j] = graph_Block[j];
-    lmem_Main[i * blockSize + j] = graph_Main[j];
+    lmem_Block[j] = graph_Block[j];
+    lmem_Main[j] = graph_Main[j];
     __syncthreads();
 
-    blockedUpdateFW_vectorized(lmem_Block, lmem_Block, lmem_Main, i, j, blockSize);
+    // printf("k: %d, x: %d, i: %d, j: %d, lmem_Block: (%d, %d, %d, %d), lmem_Main(%p): (%d, %d, %d, %d)\n",\
+    // k, x, i, j, lmem_Block[j].x, lmem_Block[j].y, lmem_Block[j].z, lmem_Block[j].w,\
+    // &lmem_Main[j], lmem_Main[j].x, lmem_Main[j].y, lmem_Main[j].z, lmem_Main[j].w);
+
+    short4 *lmem_Main_kj = (short4*)&lmem[blockSize * blockSize];
+    blockedUpdateFW_vectorized(lmem_Block, lmem_Block, lmem_Main_kj, i, j, blockSize);
     __syncthreads();
     
-    graph_Block[j] = lmem_Block[i * blockSize + j];
+    graph_Block[j] = lmem_Block[j];
 
     graph_Block = (short4*)&graph[(k * blockSize * n) + (x * blockSize) + (i * n)];
-    lmem_Block[i * blockSize + j] = graph_Block[j];
-    lmem_Main[i * blockSize + j] = graph_Main[j];
+    lmem_Block[j] = graph_Block[j];
+    lmem_Main[j] = graph_Main[j];
     __syncthreads();
     
-    blockedUpdateFW_vectorized(lmem_Block, lmem_Main, lmem_Block, i, j, blockSize);
+    short4 *lmem_Block_kj = (short4*)lmem;
+    blockedUpdateFW_vectorized(lmem_Block, lmem_Main, lmem_Block_kj, i, j, blockSize);
     __syncthreads();
 
-    graph_Block[j] = lmem_Block[i * blockSize + j];
+    graph_Block[j] = lmem_Block[j];
 }
 
 
@@ -393,21 +408,22 @@ __global__ void blocked_FW_phase3_vectorized(short *graph, ll n, int k, const in
         return;
 
     extern __shared__ short lmem[];
-    short4 *lmem_Block = (short4*)lmem;
-    short4 *lmem_Col = (short4*)&lmem_Block[blockSize * blockSize];
-    short4 *lmem_Row = (short4*)&lmem_Col[blockSize * blockSize];
+    short4 *lmem_Block = (short4*)&lmem[i * blockSize];
+    short4 *lmem_Col = (short4*)&((short*)lmem_Block)[blockSize * blockSize];
+    short4 *lmem_Row = (short4*)&((short*)lmem_Col)[blockSize * blockSize];
 
     short4 *graph_Block = (short4*)(&graph[(x * blockSize * n) + (y * blockSize) + (i * n)]);
     short4 *graph_Col = (short4*)(&graph[(x * blockSize * n) + (k * blockSize) + (i * n)]);
     short4 *graph_Row = (short4*)(&graph[(k * blockSize * n) + (y * blockSize) + (i * n)]);
 
-    lmem_Block[i * blockSize + j] = graph_Block[j];
-    lmem_Col[i * blockSize + j] = graph_Col[j];
-    lmem_Row[i * blockSize + j] = graph_Row[j];
+    lmem_Block[j] = graph_Block[j];
+    lmem_Col[j] = graph_Col[j];
+    lmem_Row[j] = graph_Row[j];
     __syncthreads();
 
-    blockedUpdateFW_vectorized(lmem_Block, lmem_Col, lmem_Row, i, j, blockSize);
+    short4 *lmem_Row_kj = (short4*)&lmem[2 * blockSize * blockSize];
+    blockedUpdateFW_vectorized(lmem_Block, lmem_Col, lmem_Row_kj, i, j, blockSize);
     __syncthreads();
 
-    graph_Block[j] = lmem_Block[i * blockSize + j];
+    graph_Block[j] = lmem_Block[j];
 }
