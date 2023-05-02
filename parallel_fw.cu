@@ -6,7 +6,6 @@
 #include "Graph/graph.hpp"
 #include "Cuda/CudaFunctions.cuh"
 
-#define CPU_VERT_LIMIT 4096
 #define DEFAULT_BLOCK_SIZE 16
 #define ll long long
 
