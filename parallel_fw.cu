@@ -96,24 +96,12 @@ int main(int argc, char **argv){
     //! ----------------------------------------------
 
     //! ------------------ VERIFY --------------------
+    
     if(toVerify){
-        bool cpuExec = true;
-        short *resultsForVerify = nullptr;
+        short *resultsForVerify = FloydWarshallCPU(graph, numVertices, numCol);;
         
-        // If the number of vertices is too high, the CPU version will be too slow
-        if (numVertices < CPU_VERT_LIMIT)
-            resultsForVerify = FloydWarshallCPU(graph, numVertices, numCol);
-        else{
-            cpuExec = false;
-            resultsForVerify = simple_parallel_FW(graph, numCol, DEFAULT_BLOCK_SIZE, !(numVertices & 3), true);
-        }
-
         verify(resultsForVerify, numVertices, w_GPU, numCol);
-
-        if(cpuExec)
-            delete[] resultsForVerify;
-        else
-            cuda(cudaFreeHost(resultsForVerify));
+        delete[] resultsForVerify;
     }
 
     if (printResults)
