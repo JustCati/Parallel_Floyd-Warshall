@@ -30,6 +30,7 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
     std::cout << "Total Function time: " << std::accumulate(times.begin(), times.end(), 0.0) / 1000 << " s" << std::endl;
 }
 
+
 short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool vectorize, bool debug){
     size_t pitch = 0;
     short *d_matrix, *h_matrix;

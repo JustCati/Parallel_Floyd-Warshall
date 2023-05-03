@@ -97,7 +97,7 @@ int main(int argc, char **argv){
     //! ------------------ VERIFY --------------------
     
     if(toVerify){
-        short *resultsForVerify = FloydWarshallCPU(graph, numVertices, numCol);;
+        short *resultsForVerify = FloydWarshallCPU(graph, numVertices, numCol);
         
         verify(resultsForVerify, numVertices, w_GPU, numCol);
         delete[] resultsForVerify;

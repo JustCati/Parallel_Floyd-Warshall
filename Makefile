@@ -1,4 +1,4 @@
-CXXFLAGS = -g -O3 
+CXXFLAGS = -g -O3
 CUFLAGS = -arch=native
 
 OBJSDIR = obj
@@ -16,4 +16,3 @@ cuda.o: ${CUDADIR}/CudaFunctions.cu ${CUDADIR}/CudaFunctions.cuh
 
 clean:
 	rm -f fw ${OBJSDIR}/*.o
-	rm -f *.txt
