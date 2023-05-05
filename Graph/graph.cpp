@@ -17,7 +17,7 @@ short* graphInit(int numVertices, int p, int seed){
             }
             int perc = rand() / (RAND_MAX / 100) + 1;
             if(perc >= p)
-                g[i * numCol + j] = rand() / (RAND_MAX >> 4) + 1;
+                g[i * numCol + j] = rand() / (RAND_MAX >> 5) + 1;
             else
                 g[i * numCol + j] = SHRT_MAX >> 1;
         }
@@ -47,7 +47,7 @@ short* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
                 }
                 int perc = rand() / (RAND_MAX / 100) + 1;
                 if(perc >= p)
-                    g[i * numCol + j] = rand() / (RAND_MAX >> 4) + 1;
+                    g[i * numCol + j] = rand() / (RAND_MAX >> 5) + 1;
                 else
                     g[i * numCol + j] = SHRT_MAX >> 1;
             }
@@ -62,6 +62,7 @@ short* blockedGraphInit(int numVertices, int p, int blockSize, int seed){
 short* FloydWarshallCPU(const short* g, ll numVertices, ll numCol){
     short *W = new short[numVertices * numVertices];
 
+    // memcpy con "pitch"
     for(int i = 0; i < numVertices; i++)
         for(int j = 0; j < numVertices; j++)
             W[i * numVertices + j] = g[i * numCol + j];

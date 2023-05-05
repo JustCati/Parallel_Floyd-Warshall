@@ -6,10 +6,12 @@
 #include "Graph/graph.hpp"
 #include "Cuda/CudaFunctions.cuh"
 
-#define DEFAULT_BLOCK_SIZE 16
 #define ll long long
+#define DEFAULT_SEED 1234
+#define DEFAULT_BLOCK_SIZE 16
 
 /*
+    -s: seed
     -c: check / verify results
     -V: (verbose) print results matrix
     -v: vectorized if possible with short4
@@ -18,11 +20,11 @@
     -a <algorithm>: Set algorithm to use (1: cpu, 1: simple, 2: blocked)
 */
 int main(int argc, char **argv){
-    int perc = 50, blockSize = DEFAULT_BLOCK_SIZE, algorithm = 0;
+    int perc = 50, blockSize = DEFAULT_BLOCK_SIZE, algorithm = 0, seed = DEFAULT_SEED;
     bool toVerify = false, printResults = false, vectorize = false;
 
-    if(argc < 2 || argc > 11)
-        throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v]");
+    if(argc < 2 || argc > 13)
+        throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-s] seed [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v]");
         
     short *graph = nullptr;
     const ll numVertices = atoll(argv[argc - 1]);
@@ -30,8 +32,11 @@ int main(int argc, char **argv){
     int opt;
     extern char *optarg;
     std::map<short, short> sqrts = {{1024, 32}, {256, 16}, {64, 8}, {16, 4}};
-    while((opt = getopt(argc, argv, "p:b:a:cvV")) != -1){
+    while((opt = getopt(argc, argv, "s:p:b:a:cvV")) != -1){
         switch(opt){
+            case 's':
+                seed = atoi(optarg);
+                break;
             case 'p':
                 perc = atoi(optarg);
                 if(perc <= 0 || perc >= 100)
@@ -72,10 +77,10 @@ int main(int argc, char **argv){
         if (remainder)
             numCol = numVertices + blockSize - remainder;
 
-        graph = blockedGraphInit(numVertices, perc, blockSize);
+        graph = blockedGraphInit(numVertices, perc, blockSize, seed);
     }
     else
-        graph = graphInit(numVertices, perc);
+        graph = graphInit(numVertices, perc, seed);
 
     //! ------------ PARALLEL FLOYD WARSHALL ON GPU -----
 
