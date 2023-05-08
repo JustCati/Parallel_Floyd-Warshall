@@ -25,9 +25,6 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
             std::cout << " GB/s";
         std::cout << std::endl;
     }
-    
-    std::cout << std::endl;
-    std::cout << "Total Function time: " << std::accumulate(times.begin(), times.end(), 0.0) / 1000 << " s" << std::endl;
 }
 
 
@@ -82,6 +79,8 @@ short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool ve
 
     outputs.push_back("Total kernel call: ");
     times.push_back(elapsedTime);
+    outputs.push_back("Total kernel call Bandwidth: ");
+    times.push_back((4 * numVertices * memsize) / elapsedTime / 1.0e6);
 
     cuda(cudaMallocHost(&h_matrix, memsize)); //* allocate memory on host
 
@@ -170,6 +169,13 @@ short* blocked_parallel_FW(const short *g, ll numVertices, int blockSize, bool v
 
     outputs.push_back("Total kernel call: ");
     times.push_back(elapsedTime);
+    outputs.push_back("Total kernel call Bandwidth: ");
+
+    float bandwidth = 0;
+    bandwidth += (2 * numBlocks * memsize) / elapsedTime / 1.0e6; // Fase 1
+    bandwidth += (6 * numBlocks * memsize) / elapsedTime / 1.0e6; // Fase 2 (3 per 2.1 e 3 per 2.2)
+    bandwidth += (4 * numBlocks * memsize) / elapsedTime / 1.0e6; // Fase 3
+    times.push_back(bandwidth);
 
     cuda(cudaMallocHost(&h_matrix, memsize)); //* allocate memory on host
 
