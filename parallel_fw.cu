@@ -108,8 +108,12 @@ int main(int argc, char **argv){
         delete[] resultsForVerify;
     }
 
-    if (printResults)
+    if (printResults){
+        std::cout << "Originale: " << std::endl;
+        printMatrix(graph, numVertices, numCol);
+        std::cout << "Risultato: " << std::endl;
         printMatrix(w_GPU, numVertices, numCol);
+    }
 
     //! -----------------------------------------------------------
 
