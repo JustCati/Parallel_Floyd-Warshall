@@ -71,7 +71,7 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll pitch, ll n, int k
 
 
 __forceinline__
-__device__ void blockedUpdateFW(short *graph_ij, short *graph_ik, short *graph_kj, int i, int j, const int blockSize){
+__device__ void blockedUpdateFW(short * __restrict__ graph_ij, short * __restrict__ graph_ik, short * __restrict__ graph_kj, int i, int j, const int blockSize){
     for(int k = 0; k < blockSize; k++){
         short sum = graph_ik[i * blockSize + k] + graph_kj[k * blockSize + j];
         if(graph_ij[i * blockSize + j] > sum)
@@ -82,9 +82,9 @@ __device__ void blockedUpdateFW(short *graph_ij, short *graph_ik, short *graph_k
 
 
 __forceinline__
-__device__ void blockedUpdateFW_vectorized(short4 *graph_ij, short4 *graph_ik, short4 *graph_kj, int j, const int blockSize){
+__device__ void blockedUpdateFW_vectorized(short4 * __restrict__ graph_ij, short4 * __restrict__ graph_ik, short4 * __restrict__ graph_kj, int j, const int blockSize){
     for(int k = 0; k < blockSize; k++){
-        short4 *graph_KJ = (short4*)&(((short*)graph_kj)[k * blockSize]);
+        short4 *graph_KJ = (short4*)((char*)graph_kj + (k * blockSize) * sizeof(short));
         
         short4 ij = graph_ij[j];
         short4 kj = graph_KJ[j];
@@ -126,10 +126,10 @@ __global__ void blocked_FW_phase1_vectorized(short *graph, ll pitch, ll n, int k
     int j = threadIdx.x;
 
     extern __shared__ short lmem_p[];
-    short4 *lmem = (short4*)&lmem_p[i * blockSize];
+    short4 *lmem = (short4*)((char*)lmem_p + (i * blockSize * sizeof(short)));
 
     short *graph_pitch = (short*)((char*)graph + (k * blockSize * pitch));
-    short4 *graph_Block = (short4*)&graph_pitch[(k * blockSize) + (i * n)];
+    short4 *graph_Block = (short4*)((char*)graph_pitch + ((k * blockSize) + (i * n)) * sizeof(short));
 
     lmem[j] = graph_Block[j];
     __syncthreads();
@@ -157,7 +157,7 @@ __global__ void blocked_FW_phase2(short *graph, ll pitch, ll n, int k, const int
     // main = blocco principale (k) da cui dipende il blocco "block" temporaneo
     extern __shared__ short lmem[];
     short *lmem_Block = (short*)lmem;
-    short *lmem_Main = (short*)(&lmem_Block[blockSize * blockSize]);
+    short *lmem_Main = (short*)((char*)lmem_Block + (blockSize * blockSize) * sizeof(short));
 
     // Porta i puntatori fino alla riga usando il pitch, l'offset per
     // le colonne viene gestito poi in "colonne" (pitch / sizeof(T))
@@ -196,26 +196,26 @@ __global__ void blocked_FW_phase2_vectorized(short *graph, ll pitch, ll n, int k
         return;
 
     extern __shared__ short lmem[];
-    short4 *lmem_Block = (short4*)&lmem[i * blockSize];
-    short4 *lmem_Main = (short4*)&((short*)lmem_Block)[blockSize * blockSize];
+    short4 *lmem_Block = (short4*)((char*)lmem + (i * blockSize) * sizeof(short));
+    short4 *lmem_Main = (short4*)((char*)lmem_Block + (blockSize * blockSize) * sizeof(short));
 
     short *graph_Block_pitch = (short*)((char*)graph + (x * blockSize * pitch));
     short *graph_Main_pitch = (short*)((char*)graph + (k * blockSize * pitch));
 
-    short4 *graph_Block = (short4*)&graph_Block_pitch[(k * blockSize) + (i * n)];
-    short4 *graph_Main = (short4*)&graph_Main_pitch[ (k * blockSize) + (i * n)];
+    short4 *graph_Block = (short4*)((char*)graph_Block_pitch + ((k * blockSize) + (i * n)) * sizeof(short));
+    short4 *graph_Main = (short4*)((char*)graph_Main_pitch + ((k * blockSize) + (i * n)) * sizeof(short));
 
     lmem_Block[j] = graph_Block[j];
     lmem_Main[j] = graph_Main[j];
     __syncthreads();
 
-    short4 *lmem_Main_kj = (short4*)&lmem[blockSize * blockSize];
+    short4 *lmem_Main_kj = (short4*)((char*)lmem + (blockSize * blockSize) * sizeof(short));
     blockedUpdateFW_vectorized(lmem_Block, lmem_Block, lmem_Main_kj, j, blockSize);
     __syncthreads();
     
     graph_Block[j] = lmem_Block[j];
 
-    graph_Block = (short4*)&graph[(k * blockSize * n) + (x * blockSize) + (i * n)];
+    graph_Block = (short4*)((char*)graph + ((k * blockSize * n) + (x * blockSize) + (i * n)) * sizeof(short));
     lmem_Block[j] = graph_Block[j];
     lmem_Main[j] = graph_Main[j];
     __syncthreads();
@@ -246,8 +246,8 @@ __global__ void blocked_FW_phase3(short *graph, ll pitch, ll n, int k, const int
 
     extern __shared__ short lmem[];
     short *lmem_Block = (short*)lmem;
-    short *lmem_Col = (short*)(&lmem_Block[blockSize * blockSize]);
-    short *lmem_Row = (short*)(&lmem_Col[blockSize * blockSize]);
+    short *lmem_Col = (short*)((char*)lmem_Block + (blockSize * blockSize) * sizeof(short));
+    short *lmem_Row = (short*)((char*)lmem_Col + (blockSize * blockSize) * sizeof(short));
 
     // Porta i puntatori fino alla riga usando il pitch, l'offset per
     // le colonne viene gestito poi in "colonne" (pitch / sizeof(T))
@@ -280,24 +280,24 @@ __global__ void blocked_FW_phase3_vectorized(short *graph, ll pitch, ll n, int k
         return;
 
     extern __shared__ short lmem[];
-    short4 *lmem_Block = (short4*)&lmem[i * blockSize];
-    short4 *lmem_Col = (short4*)&((short*)lmem_Block)[blockSize * blockSize];
-    short4 *lmem_Row = (short4*)&((short*)lmem_Col)[blockSize * blockSize];
+    short4 *lmem_Block = (short4*)((char*)lmem + (i * blockSize) * sizeof(short));
+    short4 *lmem_Col = (short4*)((char*)lmem_Block + (blockSize * blockSize) * sizeof(short));
+    short4 *lmem_Row = (short4*)((char*)lmem_Col + (blockSize * blockSize) * sizeof(short));
 
     short *graph_Block_pitch = (short*)((char*)graph + (x * blockSize * pitch));
     short *graph_Col_pitch = (short*)((char*)graph + (x * blockSize * pitch));
     short *graph_Row_pitch = (short*)((char*)graph + (k * blockSize * pitch));
 
-    short4 *graph_Block = (short4*)(&graph_Block_pitch[(y * blockSize) + (i * n)]);
-    short4 *graph_Col = (short4*)(&graph_Col_pitch[(k * blockSize) + (i * n)]);
-    short4 *graph_Row = (short4*)(&graph_Row_pitch[(y * blockSize) + (i * n)]);
+    short4 *graph_Block = (short4*)((char*)graph_Block_pitch + ((y * blockSize) + (i * n)) * sizeof(short));
+    short4 *graph_Col = (short4*)((char*)graph_Col_pitch + ((k * blockSize) + (i * n)) * sizeof(short));
+    short4 *graph_Row = (short4*)((char*)graph_Row_pitch + ((y * blockSize) + (i * n)) * sizeof(short));
 
     lmem_Block[j] = graph_Block[j];
     lmem_Col[j] = graph_Col[j];
     lmem_Row[j] = graph_Row[j];
     __syncthreads();
 
-    short4 *lmem_Row_kj = (short4*)&lmem[2 * blockSize * blockSize];
+    short4 *lmem_Row_kj = (short4*)((char*)lmem + (2 * blockSize * blockSize) * sizeof(short));
     blockedUpdateFW_vectorized(lmem_Block, lmem_Col, lmem_Row_kj, j, blockSize);
     __syncthreads();
 
