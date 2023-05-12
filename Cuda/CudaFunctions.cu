@@ -55,21 +55,23 @@ short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool ve
     times.push_back(elapsedTime);
     outputs.push_back("CudaMemCpy to device Bandwidth: ");
     times.push_back(memsize / elapsedTime / 1.0e6);
-
-    cuda(cudaEventRecord(start));
-
     //* ---------------------- KERNEL ---------------------- *//
     dim3 dimBlock = dim3(blockSize, blockSize);
     dim3 numBlock = dim3((numVertices + dimBlock.x - 1) / dimBlock.x, (numVertices + dimBlock.y - 1) / dimBlock.y);
 
-    if(vectorize){ //* vectorize with short4 type (default)
+
+    if(vectorize){
         dimBlock = dim3(blockSize >> 2, blockSize);
+
+        cuda(cudaEventRecord(start));
         for(int k = 0; k < numVertices; k++)
             FW_simple_kernel_vectorized<<<numBlock, dimBlock>>>((short4*)d_matrix, pitch, numVertices >> 2, k); //* call kernel
     }
-    else
+    else{
+        cuda(cudaEventRecord(start));
         for(int k = 0; k < numVertices; k++)
             FW_simple_kernel<<<numBlock, dimBlock>>>(d_matrix, pitch, numVertices, k); //* call kernel
+    }
 
     //* ---------------------------------------------------- *//
 
@@ -80,7 +82,10 @@ short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool ve
     outputs.push_back("Total kernel call: ");
     times.push_back(elapsedTime);
     outputs.push_back("Total kernel call Bandwidth: ");
-    times.push_back((4 * numVertices * memsize) / elapsedTime / 1.0e6);
+    if(vectorize)
+        times.push_back(8 * numVertices * memsize / elapsedTime / 1.0e6 / 4);
+    else
+        times.push_back(3 * numVertices * memsize / elapsedTime / 1.0e6);
 
     cuda(cudaMallocHost(&h_matrix, memsize)); //* allocate memory on host
 
@@ -136,7 +141,6 @@ short* blocked_parallel_FW(const short *g, ll numVertices, int blockSize, bool v
     outputs.push_back("CudaMemCpy to device Bandwidth: ");
     times.push_back(memsize / elapsedTime / 1.0e6);
 
-    cuda(cudaEventRecord(start));
 
     //* ---------------------- KERNEL ---------------------- *//
     const int numBlocks = (numVertices + blockSize - 1) / blockSize;
@@ -148,6 +152,7 @@ short* blocked_parallel_FW(const short *g, ll numVertices, int blockSize, bool v
     if(vectorize){
         dimBlock = dim3(blockSize >> 2, blockSize);
 
+        cuda(cudaEventRecord(start));
         for(int k = 0; k < numBlocks; k++){
             blocked_FW_phase1_vectorized<<<1, dimBlock, sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
             blocked_FW_phase2_vectorized<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
@@ -155,6 +160,7 @@ short* blocked_parallel_FW(const short *g, ll numVertices, int blockSize, bool v
         }
     }
     else{
+        cuda(cudaEventRecord(start));
         for(int k = 0; k < numBlocks; k++){
             blocked_FW_phase1<<<1, dimBlock, sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
             blocked_FW_phase2<<<numBlocks, dimBlock, 2 * sharedMemSize>>>(d_matrix, pitch, pitch / sizeof(short), k, blockSize);
@@ -172,9 +178,16 @@ short* blocked_parallel_FW(const short *g, ll numVertices, int blockSize, bool v
     outputs.push_back("Total kernel call Bandwidth: ");
 
     float bandwidth = 0;
-    bandwidth += (2 * numBlocks * memsize) / elapsedTime / 1.0e6; // Fase 1
-    bandwidth += (6 * numBlocks * memsize) / elapsedTime / 1.0e6; // Fase 2 (3 per 2.1 e 3 per 2.2)
-    bandwidth += (4 * numBlocks * memsize) / elapsedTime / 1.0e6; // Fase 3
+    if(vectorize){
+        bandwidth += (2 * numBlocks * memsize) / elapsedTime / 1.0e6 / 4; // Fase 1
+        bandwidth += (6 * numBlocks * memsize) / elapsedTime / 1.0e6 / 4; // Fase 2 (3 per 2.1 e 3 per 2.2)
+        bandwidth += (4 * numBlocks * memsize) / elapsedTime / 1.0e6 / 4; // Fase 3
+    }
+    else{
+        bandwidth += (2 * numBlocks * memsize) / elapsedTime / 1.0e6; // Fase 1
+        bandwidth += (6 * numBlocks * memsize) / elapsedTime / 1.0e6; // Fase 2 (3 per 2.1 e 3 per 2.2)
+        bandwidth += (4 * numBlocks * memsize) / elapsedTime / 1.0e6; // Fase 3
+    }
     times.push_back(bandwidth);
 
     cuda(cudaMallocHost(&h_matrix, memsize)); //* allocate memory on host

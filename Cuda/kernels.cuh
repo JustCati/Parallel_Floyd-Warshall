@@ -71,7 +71,7 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll pitch, ll n, int k
 
 
 __forceinline__
-__device__ void blockedUpdateFW(short * __restrict__ graph_ij, short * __restrict__ graph_ik, short * __restrict__ graph_kj, int i, int j, const int blockSize){
+__device__ void blockedUpdateFW(short *graph_ij, short *graph_ik, short *graph_kj, int i, int j, const int blockSize){
     for(int k = 0; k < blockSize; k++){
         short sum = graph_ik[i * blockSize + k] + graph_kj[k * blockSize + j];
         if(graph_ij[i * blockSize + j] > sum)
@@ -82,7 +82,7 @@ __device__ void blockedUpdateFW(short * __restrict__ graph_ij, short * __restric
 
 
 __forceinline__
-__device__ void blockedUpdateFW_vectorized(short4 * __restrict__ graph_ij, short4 * __restrict__ graph_ik, short4 * __restrict__ graph_kj, int j, const int blockSize){
+__device__ void blockedUpdateFW_vectorized(short4 *graph_ij, short4 *graph_ik, short4 *graph_kj, int j, const int blockSize){
     for(int k = 0; k < blockSize; k++){
         short4 *graph_KJ = (short4*)((char*)graph_kj + (k * blockSize) * sizeof(short));
         
