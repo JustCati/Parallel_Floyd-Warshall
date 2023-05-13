@@ -23,16 +23,16 @@ __global__ void FW_simple_kernel(short *graph, ll pitch, ll n, int k) {
     int j = blockIdx.x * blockDim.x + threadIdx.x;
     int i = blockIdx.y * blockDim.y + threadIdx.y;
 
-    short *d_D_Pitch_i = (short*)((char*)graph + i * pitch);
-    short *d_D_Pitch_k = (short*)((char*)graph + k * pitch);
+    short *graph_Pitch_i = (short*)((char*)graph + i * pitch);
+    short *graph_Pitch_k = (short*)((char*)graph + k * pitch);
   
     if (i < n && j < n) {
-        short ij = d_D_Pitch_i[j];
-        short ik = d_D_Pitch_i[k];
-        short kj = d_D_Pitch_k[j];
+        short ij = graph_Pitch_i[j];
+        short ik = graph_Pitch_i[k];
+        short kj = graph_Pitch_k[j];
 
         if (ik + kj < ij)
-            d_D_Pitch_i[j] = ik + kj;
+            graph_Pitch_i[j] = ik + kj;
     }
 }
 
@@ -45,27 +45,27 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll pitch, ll n, int k
         short tempIk;
         short4 ij, ik, kj;
 
-        short4 *d_D_Pitch_i = (short4*)((char*)graph + i * pitch);
-        short4 *d_D_Pitch_k = (short4*)((char*)graph + k * pitch);
+        short4 *graph_Pitch_i = (short4*)((char*)graph + i * pitch);
+        short4 *graph_Pitch_k = (short4*)((char*)graph + k * pitch);
 
-        ij = d_D_Pitch_i[j];
-        kj = d_D_Pitch_k[j];
+        ij = graph_Pitch_i[j];
+        kj = graph_Pitch_k[j];
 
         int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
-        tempIk = *(((short*)(d_D_Pitch_i + (k >> 2))) + lsb_2);
+        tempIk = *(((short*)(graph_Pitch_i + (k >> 2))) + lsb_2);
 
         // if(lsb_2 == 0)
-        //     tempIk = d_D_Pitch_i[(k >> 2)].x;
+        //     tempIk = graph_Pitch_i[(k >> 2)].x;
         // if(lsb_2 == 1)
-        //     tempIk = d_D_Pitch_i[(k >> 2)].y;
+        //     tempIk = graph_Pitch_i[(k >> 2)].y;
         // if(lsb_2 == 2)
-        //     tempIk = d_D_Pitch_i[(k >> 2)].z;
+        //     tempIk = graph_Pitch_i[(k >> 2)].z;
         // if(lsb_2 == 3)
-        //     tempIk = d_D_Pitch_i[(k >> 2)].w;
+        //     tempIk = graph_Pitch_i[(k >> 2)].w;
 
         ik = make_short4(tempIk, tempIk, tempIk, tempIk);
-        d_D_Pitch_i[j] = checkWeight(ik + kj, ij);
+        graph_Pitch_i[j] = checkWeight(ik + kj, ij);
     }
 }
 
@@ -109,16 +109,16 @@ __global__ void blocked_FW_phase1(short *graph, ll pitch, ll n, int k, const int
 
     // Porta i puntatori fino alla riga usando il pitch, l'offset per
     // le colonne viene gestito poi in "colonne" (pitch / sizeof(T))
-    short *d_D_Pitch_main = (short*)((char*)graph + (k * blockSize * pitch));
+    short *graph_Pitch_main = (short*)((char*)graph + (k * blockSize * pitch));
 
     // lmem: blocco principale nella diagonale da aggiornare
-    lmem[i * blockSize + j] = d_D_Pitch_main[(k * blockSize) + (i * n + j)];
+    lmem[i * blockSize + j] = graph_Pitch_main[(k * blockSize) + (i * n + j)];
     __syncthreads();
 
     blockedUpdateFW(lmem, lmem, lmem, i, j, blockSize);
     __syncthreads();
 
-    d_D_Pitch_main[(k * blockSize) + (i * n + j)] = lmem[i * blockSize + j];
+    graph_Pitch_main[(k * blockSize) + (i * n + j)] = lmem[i * blockSize + j];
 }
 
 __global__ void blocked_FW_phase1_vectorized(short *graph, ll pitch, ll n, int k, const int blockSize){
@@ -161,29 +161,29 @@ __global__ void blocked_FW_phase2(short *graph, ll pitch, ll n, int k, const int
 
     // Porta i puntatori fino alla riga usando il pitch, l'offset per
     // le colonne viene gestito poi in "colonne" (pitch / sizeof(T))
-    short *d_D_Pitch_col = (short*)((char*)graph + (x * blockSize * pitch));
-    short *d_D_Pitch_main = (short*)((char*)graph + (k * blockSize * pitch));
-    short *d_D_Pitch_row = (short*)((char*)graph + (k * blockSize * pitch));
+    short *graph_Pitch_col = (short*)((char*)graph + (x * blockSize * pitch));
+    short *graph_Pitch_main = (short*)((char*)graph + (k * blockSize * pitch));
+    short *graph_Pitch_row = (short*)((char*)graph + (k * blockSize * pitch));
 
     // Fase 2.1: carica in "block" il blocco nella stessa colonna di "main" (la riga (in blocchi) è indicizzata da x)
-    lmem_Block[i * blockSize + j] = d_D_Pitch_col[(k * blockSize) + (i * n + j)];
-    lmem_Main[i * blockSize + j] = d_D_Pitch_main[(k * blockSize) + (i * n + j)];
+    lmem_Block[i * blockSize + j] = graph_Pitch_col[(k * blockSize) + (i * n + j)];
+    lmem_Main[i * blockSize + j] = graph_Pitch_main[(k * blockSize) + (i * n + j)];
     __syncthreads();
 
     blockedUpdateFW(lmem_Block, lmem_Block, lmem_Main, i, j, blockSize);
     __syncthreads();
 
-    d_D_Pitch_col[(k * blockSize) + (i * n + j)] = lmem_Block[i * blockSize + j];
+    graph_Pitch_col[(k * blockSize) + (i * n + j)] = lmem_Block[i * blockSize + j];
 
     // Fase 2.2: carica in "block" il blocco nella stessa riga di "main" (la colonna (in blocchi) è indicizzata da x)
-    lmem_Block[i * blockSize + j] = d_D_Pitch_row[(x * blockSize) + (i * n + j)];
-    lmem_Main[i * blockSize + j] = d_D_Pitch_main[(k * blockSize) + (i * n + j)];
+    lmem_Block[i * blockSize + j] = graph_Pitch_row[(x * blockSize) + (i * n + j)];
+    lmem_Main[i * blockSize + j] = graph_Pitch_main[(k * blockSize) + (i * n + j)];
     __syncthreads();
 
     blockedUpdateFW(lmem_Block, lmem_Main, lmem_Block, i, j, blockSize);
     __syncthreads();
 
-    d_D_Pitch_row[(x * blockSize) + (i * n + j)] = lmem_Block[i * blockSize + j];
+    graph_Pitch_row[(x * blockSize) + (i * n + j)] = lmem_Block[i * blockSize + j];
 }
 
 __global__ void blocked_FW_phase2_vectorized(short *graph, ll pitch, ll n, int k, const int blockSize){
@@ -251,22 +251,22 @@ __global__ void blocked_FW_phase3(short *graph, ll pitch, ll n, int k, const int
 
     // Porta i puntatori fino alla riga usando il pitch, l'offset per
     // le colonne viene gestito poi in "colonne" (pitch / sizeof(T))
-    short *d_D_Pitch_block = (short*)((char*)graph + (x * blockSize * pitch));
-    short *d_D_Pitch_col = (short*)((char*)graph + (x * blockSize * pitch));
-    short *d_D_Pitch_row = (short*)((char*)graph + (k * blockSize * pitch));
+    short *graph_Pitch_block = (short*)((char*)graph + (x * blockSize * pitch));
+    short *graph_Pitch_col = (short*)((char*)graph + (x * blockSize * pitch));
+    short *graph_Pitch_row = (short*)((char*)graph + (k * blockSize * pitch));
 
     // block: blocco da aggiornare
     // row: blocco nella stessa colonna del blocco principale e nella stessa riga di "block"
     // col: blocco nella stessa riga del blocco principale e nella stessa colonna di "block"
-    lmem_Block[i * blockSize + j] = d_D_Pitch_block[(y * blockSize) + (i * n + j)];
-    lmem_Col[i * blockSize + j] = d_D_Pitch_col[(k * blockSize) + (i * n + j)];
-    lmem_Row[i * blockSize + j] = d_D_Pitch_row[(y * blockSize) + (i * n + j)];
+    lmem_Block[i * blockSize + j] = graph_Pitch_block[(y * blockSize) + (i * n + j)];
+    lmem_Col[i * blockSize + j] = graph_Pitch_col[(k * blockSize) + (i * n + j)];
+    lmem_Row[i * blockSize + j] = graph_Pitch_row[(y * blockSize) + (i * n + j)];
     __syncthreads();
 
     blockedUpdateFW(lmem_Block, lmem_Col, lmem_Row, i, j, blockSize);
     __syncthreads();
 
-    d_D_Pitch_block[(y * blockSize) + (i * n + j)] = lmem_Block[i * blockSize + j];
+    graph_Pitch_block[(y * blockSize) + (i * n + j)] = lmem_Block[i * blockSize + j];
 }
 
 __global__ void blocked_FW_phase3_vectorized(short *graph, ll pitch, ll n, int k, const int blockSize){

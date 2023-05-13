@@ -24,7 +24,7 @@ int main(int argc, char **argv){
     bool toVerify = false, printResults = false, vectorize = false;
 
     if(argc < 2 || argc > 13)
-        throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-s] seed [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v]");
+        throw std::invalid_argument("Utilizzo comando: ./parallel_fw [-s] seed [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] numVertices");
         
     short *graph = nullptr;
     const ll numVertices = atoll(argv[argc - 1]);
@@ -45,7 +45,7 @@ int main(int argc, char **argv){
             case 'b':
                 blockSize = atoi(optarg);
                 if(sqrts.find(blockSize) == sqrts.end())
-                    throw std::invalid_argument("Invalid block size for blocked parallel FW algorithm");
+                    throw std::invalid_argument("Invalid block size: 1024, 256, 64, 16");
 
                 blockSize = sqrts[blockSize];
                 break;
@@ -64,7 +64,7 @@ int main(int argc, char **argv){
                 printResults = true;
                 break;
             default:
-                throw std::invalid_argument("Utilizzo comando: ./parallel_fw num_vertices [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] [-P]");
+                throw std::invalid_argument("Utilizzo comando: ./parallel_fw [-s] seed [-p] percentage [-b] BlockSize [-a] algorithm [-c] [-V] [-v] numVertices");
         }
     }
 
