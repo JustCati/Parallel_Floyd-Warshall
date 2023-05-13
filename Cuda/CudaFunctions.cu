@@ -28,7 +28,7 @@ void printMetrics(std::string title, std::vector<std::string> outputs, std::vect
 }
 
 
-short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool vectorize, bool debug){
+short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool vectorize){
     size_t pitch = 0;
     short *d_matrix, *h_matrix;
     const size_t singleRow_memsize = numVertices * sizeof(short);
@@ -100,11 +100,9 @@ short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool ve
     outputs.push_back("CudaMemCpy to Host Bandwidth: ");
     times.push_back(memsize / elapsedTime / 1.0e6);
 
-    if(!debug){
-        std::string title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) +\
-        " nodes" + (vectorize ? " with vectorization" : "");
-        printMetrics(title, outputs, times); //* print metrics
-    }
+    std::string title =  "Starting SIMPLE FW KERNEL with " + std::to_string(numVertices) +\
+    " nodes" + (vectorize ? " with vectorization" : "");
+    printMetrics(title, outputs, times); //* print metrics
 
     cuda(cudaEventDestroy(start));
     cuda(cudaEventDestroy(stop));
