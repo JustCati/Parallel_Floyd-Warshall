@@ -93,7 +93,7 @@ int main(int argc, char **argv){
             w_GPU = simple_parallel_FW(graph, numCol, blockSize, vectorize);
             break;
         case 3:
-            w_GPU = blocked_parallel_FW(graph, numCol, blockSize, vectorize);
+            w_GPU = blocked_parallel_FW(graph, numCol, vectorize ? (blockSize << 1) : blockSize, vectorize);
             break;
     }
 
