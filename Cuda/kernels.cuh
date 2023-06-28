@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 
 #define ll long long
+#define mask 0x3
 
 
 __forceinline__ __host__ __device__ 
@@ -51,7 +52,6 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll pitch, ll n, int k
         ij = graph_Pitch_i[j];
         kj = graph_Pitch_k[j];
 
-        int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
         tempIk = *(((short*)(graph_Pitch_i + (k >> 2))) + lsb_2);
 
@@ -66,7 +66,6 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll pitch, ll n, int k
 
         ik = make_short4(tempIk, tempIk, tempIk, tempIk);
         graph_Pitch_i[j] = checkWeight(ik + kj, ij);
-    
     }
 }
 
@@ -75,6 +74,7 @@ __global__ void FW_simple_kernel_vectorized_4x4(short4 *graph, ll pitch, ll n, i
     int i = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (i <  n && j < n) {
+        #pragma unroll
         for(int h = 0; h < 4; h++){
             short tempIk;
             short4 ij, ik, kj;
@@ -85,21 +85,37 @@ __global__ void FW_simple_kernel_vectorized_4x4(short4 *graph, ll pitch, ll n, i
             ij = graph_Pitch_i[j];
             kj = graph_Pitch_k[j];
 
-            int mask = ~((~0) << 2);
             int lsb_2 = (k & mask);
             tempIk = *(((short*)(graph_Pitch_i + (k >> 2))) + lsb_2);
 
-            // if(lsb_2 == 0)
-            //     tempIk = graph_Pitch_i[(k >> 2)].x;
-            // if(lsb_2 == 1)
-            //     tempIk = graph_Pitch_i[(k >> 2)].y;
-            // if(lsb_2 == 2)
-            //     tempIk = graph_Pitch_i[(k >> 2)].z;
-            // if(lsb_2 == 3)
-            //     tempIk = graph_Pitch_i[(k >> 2)].w;
-
             ik = make_short4(tempIk, tempIk, tempIk, tempIk);
             graph_Pitch_i[j] = checkWeight(ik + kj, ij);
+        }
+    }
+}
+
+
+__global__ void FW_simple_kernel_vectorized_4x4_short(short *graph, ll pitch, ll n, int k){
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    int i = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i < n && j < n) {
+        #pragma unroll
+        for(int h = 0; h < 4; h++){
+            #pragma unroll
+            for(int w = 0; w < 4; w++){
+                short ij, ik, kj;
+
+                short *graph_Pitch_i = (short*)((char*)graph + (i + (n * h)) * pitch);
+                short *graph_Pitch_k = (short*)((char*)graph + k * pitch);
+
+                ij = graph_Pitch_i[j + (w * n)];
+                kj = graph_Pitch_k[j + (w * n)];
+                ik = graph_Pitch_i[k];
+
+                if (ik + kj < ij)
+                    graph_Pitch_i[j + (w * n)] = ik + kj;
+            }
         }
     }
 }
@@ -124,7 +140,6 @@ __device__ void blockedUpdateFW_vectorized(short4 *graph_ij, short4 *graph_ik, s
         short4 ij = graph_ij[j];
         short4 kj = graph_KJ[j];
 
-        int mask = ~((~0) << 2);
         int lsb_2 = (k & mask);
         short tempIk = *(((short*)(graph_ik + (k >> 2))) + lsb_2);
 
