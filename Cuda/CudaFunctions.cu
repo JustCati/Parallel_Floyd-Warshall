@@ -61,7 +61,7 @@ short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool ve
 
 
     if(vectorize){
-        dimBlock = dim3(blockSize >> 2, blockSize);
+        dimBlock = dim3(blockSize >> 2, blockSize >> 2);
 
         cuda(cudaEventRecord(start));
         for(int k = 0; k < numVertices; k++)
