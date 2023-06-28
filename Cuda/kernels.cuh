@@ -41,6 +41,39 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll pitch, ll n, int k
     int j = blockIdx.x * blockDim.x + threadIdx.x;
     int i = blockIdx.y * blockDim.y + threadIdx.y;
 
+    if (i < (n << 2) && j < n) {
+        short tempIk;
+        short4 ij, ik, kj;
+
+        short4 *graph_Pitch_i = (short4*)((char*)graph + i * pitch);
+        short4 *graph_Pitch_k = (short4*)((char*)graph + k * pitch);
+
+        ij = graph_Pitch_i[j];
+        kj = graph_Pitch_k[j];
+
+        int mask = ~((~0) << 2);
+        int lsb_2 = (k & mask);
+        tempIk = *(((short*)(graph_Pitch_i + (k >> 2))) + lsb_2);
+
+        // if(lsb_2 == 0)
+        //     tempIk = graph_Pitch_i[(k >> 2)].x;
+        // if(lsb_2 == 1)
+        //     tempIk = graph_Pitch_i[(k >> 2)].y;
+        // if(lsb_2 == 2)
+        //     tempIk = graph_Pitch_i[(k >> 2)].z;
+        // if(lsb_2 == 3)
+        //     tempIk = graph_Pitch_i[(k >> 2)].w;
+
+        ik = make_short4(tempIk, tempIk, tempIk, tempIk);
+        graph_Pitch_i[j] = checkWeight(ik + kj, ij);
+    
+    }
+}
+
+__global__ void FW_simple_kernel_vectorized_4x4(short4 *graph, ll pitch, ll n, int k){
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+    int i = blockIdx.y * blockDim.y + threadIdx.y;
+
     if (i <  n && j < n) {
         for(int h = 0; h < 4; h++){
             short tempIk;
