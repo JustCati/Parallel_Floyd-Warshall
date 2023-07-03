@@ -89,7 +89,7 @@ __global__ void FW_simple_kernel_vectorized_4x4_short4(short4 *graph, ll pitch, 
             tempIk = *(((short*)(graph_i + (k >> 2))) + lsb_2);
 
             ik = make_short4(tempIk, tempIk, tempIk, tempIk);
-            graph_i[j] = (ik + kj) + ij;
+            graph_i[j] = checkWeight(ik + kj, ij);
         }
     }
 }
