@@ -68,7 +68,7 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll pitch, ll n, int k
     }
 }
 
-#define PSEUDO_BLOCK_SIZE 1
+#define PSEUDO_BLOCK_SIZE 4
 __global__ void FW_simple_kernel_vectorized_4x4_short4(short4 *graph, ll pitch, ll n, int k){
     int j = blockIdx.x * blockDim.x + threadIdx.x;
     int i = blockIdx.y * blockDim.y + threadIdx.y;
