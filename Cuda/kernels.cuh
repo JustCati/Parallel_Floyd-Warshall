@@ -42,13 +42,12 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll pitch, ll n, int k
     int j = blockIdx.x * blockDim.x + threadIdx.x;
     int i = blockIdx.y * blockDim.y + threadIdx.y;
 
+    short tempIk;
+    short4 ij, ik, kj;
+    short4 *graph_Pitch_i = (short4*)((char*)graph + i * pitch);
+    short4 *graph_Pitch_k = (short4*)((char*)graph + k * pitch);
+
     if (i < (n << 2) && j < n) {
-        short tempIk;
-        short4 ij, ik, kj;
-
-        short4 *graph_Pitch_i = (short4*)((char*)graph + i * pitch);
-        short4 *graph_Pitch_k = (short4*)((char*)graph + k * pitch);
-
         ij = graph_Pitch_i[j];
         kj = graph_Pitch_k[j];
 
@@ -73,7 +72,7 @@ __global__ void FW_simple_kernel_vectorized_4x4(short4 *graph, ll pitch, ll n, i
     int j = blockIdx.x * blockDim.x + threadIdx.x;
     int i = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (i <  n && j < n) {
+    if (i < n && j < n) {
         #pragma unroll
         for(int h = 0; h < 4; h++){
             short tempIk;
@@ -99,22 +98,22 @@ __global__ void FW_simple_kernel_vectorized_4x4_short(short *graph, ll pitch, ll
     int j = blockIdx.x * blockDim.x + threadIdx.x;
     int i = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (i < n && j < n) {
+    if(i < n && j < n){
         #pragma unroll
         for(int h = 0; h < 4; h++){
+            short *graph_Pitch_i = (short*)((char*)graph + ((i * 4) + h) * pitch);
+            short *graph_Pitch_k = (short*)((char*)graph + k * pitch);
+
             #pragma unroll
             for(int w = 0; w < 4; w++){
                 short ij, ik, kj;
 
-                short *graph_Pitch_i = (short*)((char*)graph + (i + (n * h)) * pitch);
-                short *graph_Pitch_k = (short*)((char*)graph + k * pitch);
-
-                ij = graph_Pitch_i[j + (w * n)];
-                kj = graph_Pitch_k[j + (w * n)];
+                ij = graph_Pitch_i[(j * 4) + w];
+                kj = graph_Pitch_k[(j * 4) + w];
                 ik = graph_Pitch_i[k];
 
                 if (ik + kj < ij)
-                    graph_Pitch_i[j + (w * n)] = ik + kj;
+                    graph_Pitch_i[(j * 4) + w] = ik + kj;
             }
         }
     }
