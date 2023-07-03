@@ -68,8 +68,7 @@ __global__ void FW_simple_kernel_vectorized(short4 *graph, ll pitch, ll n, int k
     }
 }
 
-#define PSEUDO_BLOCK_SIZE 4
-__global__ void FW_simple_kernel_vectorized_4x4_short4(short4 *graph, ll pitch, ll n, int k){
+__global__ void FW_simple_kernel_vectorized_4x4_short4(short4 *graph, ll pitch, ll n, int blockSize, int k){
     int j = blockIdx.x * blockDim.x + threadIdx.x;
     int i = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -80,7 +79,7 @@ __global__ void FW_simple_kernel_vectorized_4x4_short4(short4 *graph, ll pitch, 
 
         #pragma unroll
         for(int h = 0; h < 4; h++){
-            short4 *graph_i = (short4*)((char*)graph + ((i * PSEUDO_BLOCK_SIZE) + h) * pitch);
+            short4 *graph_i = (short4*)((char*)graph + ((i * blockSize) + h) * pitch);
 
             ij = graph_i[j];
             kj = graph_k[j];
@@ -95,26 +94,26 @@ __global__ void FW_simple_kernel_vectorized_4x4_short4(short4 *graph, ll pitch, 
 }
 
 
-__global__ void FW_simple_kernel_vectorized_4x4(short *graph, ll pitch, ll n, int k){
+__global__ void FW_simple_kernel_vectorized_4x4(short *graph, ll pitch, ll n, int blockSize, int k){
     int j = blockIdx.x * blockDim.x + threadIdx.x;
     int i = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(i < n && j < n){
         #pragma unroll
-        for(int h = 0; h < PSEUDO_BLOCK_SIZE; h++){
-            short *graph_i = (short*)((char*)graph + ((i * PSEUDO_BLOCK_SIZE) + h) * pitch);
+        for(int h = 0; h < blockSize; h++){
+            short *graph_i = (short*)((char*)graph + ((i * blockSize) + h) * pitch);
             short *graph_k = (short*)((char*)graph + k * pitch);
 
             #pragma unroll
-            for(int w = 0; w < PSEUDO_BLOCK_SIZE; w++){
+            for(int w = 0; w < blockSize; w++){
                 short ij, ik, kj;
 
-                ij = graph_i[(j * PSEUDO_BLOCK_SIZE) + w];
-                kj = graph_k[(j * PSEUDO_BLOCK_SIZE) + w];
+                ij = graph_i[(j * blockSize) + w];
+                kj = graph_k[(j * blockSize) + w];
                 ik = graph_i[k];
 
                 if (ik + kj < ij)
-                    graph_i[(j * PSEUDO_BLOCK_SIZE) + w] = ik + kj;
+                    graph_i[(j * blockSize) + w] = ik + kj;
             }
         }
     }
