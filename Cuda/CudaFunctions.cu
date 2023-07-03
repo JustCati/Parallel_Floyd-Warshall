@@ -63,7 +63,7 @@ short* simple_parallel_FW(const short *g, ll numVertices, int blockSize, bool ve
     if(vectorize){
         cuda(cudaEventRecord(start));
         for(int k = 0; k < numVertices; k++)
-#if 1
+#if 0
             FW_simple_kernel_vectorized_4x4<<<numBlock, dimBlock>>>(d_matrix, pitch, numVertices >> 2, k);
 #else
             FW_simple_kernel_vectorized_4x4_short4<<<numBlock, dimBlock>>>((short4*)d_matrix, pitch, numVertices >> 2, k);
