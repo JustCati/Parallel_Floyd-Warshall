@@ -94,26 +94,27 @@ __global__ void FW_simple_kernel_vectorized_4x4(short4 *graph, ll pitch, ll n, i
 }
 
 
+#define PSEUDO_BLOCK_SIZE 4
 __global__ void FW_simple_kernel_vectorized_4x4_short(short *graph, ll pitch, ll n, int k){
     int j = blockIdx.x * blockDim.x + threadIdx.x;
     int i = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(i < n && j < n){
         #pragma unroll
-        for(int h = 0; h < 4; h++){
-            short *graph_Pitch_i = (short*)((char*)graph + ((i * 4) + h) * pitch);
+        for(int h = 0; h < PSEUDO_BLOCK_SIZE; h++){
+            short *graph_Pitch_i = (short*)((char*)graph + ((i * PSEUDO_BLOCK_SIZE) + h) * pitch);
             short *graph_Pitch_k = (short*)((char*)graph + k * pitch);
 
             #pragma unroll
-            for(int w = 0; w < 4; w++){
+            for(int w = 0; w < PSEUDO_BLOCK_SIZE; w++){
                 short ij, ik, kj;
 
-                ij = graph_Pitch_i[(j * 4) + w];
-                kj = graph_Pitch_k[(j * 4) + w];
+                ij = graph_Pitch_i[(j * PSEUDO_BLOCK_SIZE) + w];
+                kj = graph_Pitch_k[(j * PSEUDO_BLOCK_SIZE) + w];
                 ik = graph_Pitch_i[k];
 
                 if (ik + kj < ij)
-                    graph_Pitch_i[(j * 4) + w] = ik + kj;
+                    graph_Pitch_i[(j * PSEUDO_BLOCK_SIZE) + w] = ik + kj;
             }
         }
     }
