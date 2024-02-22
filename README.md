@@ -1,5 +1,5 @@
 # Parallel Floyd Warshall Algorithm
-
+Implementation of a parallelized solution of the Floyd-Warshall algorithm using CUDA technology for execution on GPU.
 
 
 ## Description
