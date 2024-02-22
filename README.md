@@ -3,14 +3,14 @@
 
 
 ## Description
-Questo progetto implementa una soluzione parallelizzata dell'algoritmo di Floyd-Warshall utilizzando la tecnologia CUDA per l'esecuzione su GPU. L'algoritmo di Floyd-Warshall è ampiamente utilizzato per trovare il percorso più breve tra tutti i nodi in un grafo pesato, ed è di particolare interesse nell'ambito dei problemi di routing e di ottimizzazione di reti.
+This project implements a parallelized solution of the Floyd-Warshall algorithm using CUDA technology for execution on GPU. The Floyd-Warshall algorithm is widely employed for finding the shortest path between all nodes in a weighted graph, and it is of particular interest in the realm of routing problems and network optimization.
 
-Le soluzioni proposte consistono in due approcci:
-1. Parallelizzazione semplice del ciclo più esterno dell'algoritmo e una sua versione vettorizzata con tipo *short4*.
-2. Versione ottimizzata dell'implementazione precedente [1] tramite l'utilizzo di sottoblocchi per aumentare la responsabilità del singolo thread e ridurre il numero di accessi alla memoria globale.
-3. Blocked Floyd-Warshall: versione ottimizzata dell'algoritmo di Floyd-Warshall che sfrutta la tecnica di blocking per ridurre il numero di accessi alla memoria globale e sfruttare al meglio la cache della GPU (shared memory). Si implementa inoltre una versione vettorizzata con tipo *short4*.
+The proposed solutions consist of two approaches:
 
-Tutti i risultati sono stati testati su grafi random generati on-the-fly tramite algoritmo di Erdos-Renyi.
+1. Simple parallelization of the outermost loop of the algorithm and its vectorized version with type short4.
+2. Optimized version of the previous implementation [1] through the utilization of sub-blocks to increase the responsibility of individual threads and reduce the number of accesses to global memory.
+3. Blocked Floyd-Warshall: an optimized version of the Floyd-Warshall algorithm that leverages blocking technique to decrease the number of accesses to global memory and efficiently utilize the GPU cache (shared memory). Additionally, a vectorized version with type short4 is implemented.
+All results have been tested on randomly generated graphs generated on-the-fly using the Erdos-Renyi algorithm.
 
 
 ## Screenshots
