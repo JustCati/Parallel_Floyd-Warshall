@@ -4,6 +4,7 @@
 !*.*
 !*/
 !Makefile
+!LICENSE
 
 # Ignore txt files used for saving graphs
 *.txt
