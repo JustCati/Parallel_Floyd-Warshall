@@ -5,7 +5,7 @@
 ## Description
 This project implements a parallelized solution of the Floyd-Warshall algorithm using CUDA technology for execution on GPU. The Floyd-Warshall algorithm is widely employed for finding the shortest path between all nodes in a weighted graph, and it is of particular interest in the realm of routing problems and network optimization.
 
-The proposed solutions consist of two approaches:
+The proposed solutions consist of three approaches:
 
 1. Simple parallelization of the outermost loop of the algorithm and its vectorized version with type short4.
 2. Optimized version of the previous implementation [1] through the utilization of sub-blocks to increase the responsibility of individual threads and reduce the number of accesses to global memory.
